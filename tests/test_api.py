@@ -48,3 +48,15 @@ def test_untrained_weights_return_503(monkeypatch,tmp_path):
     r=client.post('/api/detect',files={'image':('valid.png',image(),'image/png')})
     assert r.status_code == 503
     assert 'weights' in r.json()['detail']
+
+
+def test_search_engine_discovery_files():
+    home = client.get('/')
+    assert 'YOLO: CircuitVision' in home.text
+    assert 'rel="canonical"' in home.text
+    robots = client.get('/robots.txt')
+    assert robots.status_code == 200
+    assert 'Sitemap: https://circuitvision-yolo-lab.onrender.com/sitemap.xml' in robots.text
+    sitemap = client.get('/sitemap.xml')
+    assert sitemap.status_code == 200
+    assert '<loc>https://circuitvision-yolo-lab.onrender.com/</loc>' in sitemap.text

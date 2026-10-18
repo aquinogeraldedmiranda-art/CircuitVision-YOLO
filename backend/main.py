@@ -160,7 +160,7 @@ async def detect(
             'annotated_image_url': None}
 
 
-FRONTEND_FILES = {'index.html', 'app.js', 'api.js', 'demo.js', 'config.js', 'styles.css'}
+FRONTEND_FILES = {'index.html', 'app.js', 'api.js', 'demo.js', 'config.js', 'styles.css', 'robots.txt', 'sitemap.xml'}
 
 
 @app.get('/')

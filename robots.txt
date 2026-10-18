@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://circuitvision-yolo-lab.onrender.com/sitemap.xml
