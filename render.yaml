@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: circuitvision-yolo-lab
+    runtime: python
+    plan: free
+    rootDir: .
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT --workers 1
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.11
+      - key: OMP_NUM_THREADS
+        value: '1'
+      - key: OPENBLAS_NUM_THREADS
+        value: '1'
+      - key: CV_ONNX_THREADS
+        value: '1'
+      - key: CV_ENABLE_GENERIC
+        value: '0'
+      - key: CV_MAX_UPLOAD_MB
+        value: '10'

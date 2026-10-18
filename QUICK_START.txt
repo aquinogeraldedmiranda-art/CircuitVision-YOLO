@@ -1,0 +1,13 @@
+CIRCUITVISION - PUBLIC WEBSITE VERSION
+
+Your professor will ONLY need the HTTPS website link after deployment.
+
+1) Colab: train a labeled YOLO11 object-detection dataset; export best.onnx.
+2) Place the REAL best.onnx in the models/ folder.
+3) Upload ALL of these files to your GitHub repository.
+4) Connect Render, New Blueprint -> choose GitHub repo -> use render.yaml.
+5) Wait for deploy success and visit the ACTUAL https://<your-app>.onrender.com URL.
+6) From a phone use Chrome/Safari: allow camera, then Start YOLO detection.
+
+If no best.onnx exists, UI loads but the backend cannot recognize anything.
+Refer to DEPLOY_FREE.md and TRAIN_AND_EXPORT_COLAB.md.
