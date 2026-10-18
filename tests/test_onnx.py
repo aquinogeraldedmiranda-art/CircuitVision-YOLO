@@ -31,3 +31,18 @@ def test_iou_class_specific_nms():
     b=np.array([[0,0,10,10],[1,1,10,10],[0,0,10,10]],np.float32)
     keep=non_max_suppression(b,np.array([.9,.8,.7]),np.array([0,0,1]))
     assert list(keep)==[0,2]
+
+def test_yolo26_end_to_end_boxes():
+    from backend.onnx_inference import decode_yolo26
+    data=np.array([[[104,130,312,338,.86,2], [105,132,312,338,.07,2],
+                    [20,20,20,30,.95,1], [200,200,300,300,.85,1]]],dtype=np.float32)
+    result=decode_yolo26(data,(0,104,2.08,2.08),200,100,
+                         {1:'Capacitor',2:'Power Module'},0.50)
+    assert len(result)==2
+    assert result[0]['label']=='Power Module'
+    assert result[0]['bbox']==[.25,.125,.75,1.0]
+    assert result[1]['label']=='Capacitor'
+
+def test_pinned_pretrained_checksum_rejects_other_bytes():
+    from backend.pretrained import verify_model
+    assert not verify_model(b'fake weights')

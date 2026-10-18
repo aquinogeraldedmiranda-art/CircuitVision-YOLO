@@ -127,6 +127,42 @@ def decode_yolo11(output: np.ndarray, meta: tuple[int, int, float, float],
     return results
 
 
+def decode_yolo26(output: np.ndarray, meta: tuple[int, int, float, float],
+                  image_w: int, image_h: int, class_names: dict[int, str],
+                  confidence: float) -> list[dict]:
+    """Decode end-to-end YOLO26 [batch, 300, 6] xyxy, confidence, class ID."""
+    array = np.asarray(output)
+    if array.ndim == 3:
+        if array.shape[0] != 1:
+            raise ValueError(f'Expected one image, got {array.shape}')
+        array = array[0]
+    if array.ndim != 2 or array.shape[1] != 6:
+        raise ValueError(f'Unexpected end-to-end detection output: {array.shape}')
+    left, top, sx, sy = meta
+    detections = []
+    for record in array:
+        x1,y1,x2,y2,score,raw_cls = map(float,record)
+        if not (math.isfinite(score) and confidence <= score <= 1.0 and
+                all(math.isfinite(v) for v in (x1,y1,x2,y2,raw_cls))):
+            continue
+        class_id = int(round(raw_cls))
+        if class_id < 0 or abs(raw_cls-class_id) > .05:
+            continue
+        x1 = max(0.0,min(float(image_w),(x1-left)/sx))
+        y1 = max(0.0,min(float(image_h),(y1-top)/sy))
+        x2 = max(0.0,min(float(image_w),(x2-left)/sx))
+        y2 = max(0.0,min(float(image_h),(y2-top)/sy))
+        if x2 <= x1 + 1 or y2 <= y1 + 1:
+            continue
+        detections.append({'label':class_names.get(class_id,f'Class {class_id}'),
+                           'class_id':class_id,'confidence':round(score,5),
+                           'bbox':[round(x1/image_w,6),round(y1/image_h,6),
+                                   round(x2/image_w,6),round(y2/image_h,6)]})
+        if len(detections) >= 80:
+            break
+    return detections
+
+
 class ONNXDetector:
     def __init__(self, weight: Path, labels: Path):
         try:
@@ -147,6 +183,12 @@ class ONNXDetector:
         if len(shape) != 4 or shape[1] != 3 or not isinstance(shape[2], int) or not isinstance(shape[3], int):
             raise ValueError(f'Expected fixed NCHW [1,3,H,W] image input, got {shape}.')
         self.height, self.width = shape[2], shape[3]
+        outputs = self.session.get_outputs()
+        if len(outputs) != 1:
+            raise ValueError(f'Expected one detection output, got {len(outputs)}')
+        out_shape = outputs[0].shape
+        self.end2end = (len(out_shape) == 3 and out_shape[-1] == 6)
+
         class_map = self.session.get_modelmeta().custom_metadata_map or {}
         self.names = parse_class_map(class_map.get('names'))
         if labels.exists():
@@ -160,4 +202,6 @@ class ONNXDetector:
             raw = self.session.run(None, {self.input_name: tensor})
         if not raw:
             raise ValueError('ONNX model returned no outputs')
-        return decode_yolo11(raw[0], meta, img.width, img.height, self.names, confidence)
+        return (decode_yolo26(raw[0], meta, img.width, img.height, self.names, confidence)
+                if self.end2end else
+                decode_yolo11(raw[0], meta, img.width, img.height, self.names, confidence))

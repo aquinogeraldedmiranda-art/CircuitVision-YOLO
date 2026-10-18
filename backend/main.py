@@ -19,6 +19,7 @@ from fastapi.responses import FileResponse
 from PIL import Image, ImageOps, UnidentifiedImageError
 
 from backend.onnx_inference import ONNXDetector
+from backend.pretrained import ensure_model
 
 ROOT = Path(__file__).resolve().parent.parent
 MODEL_FOLDER = ROOT / 'models'
@@ -33,7 +34,8 @@ app = FastAPI(title='CircuitVision YOLO API', version='3.0.0', docs_url='/api/do
 def custom_weight_path() -> Path | None:
     paths = ([Path(CUSTOM_MODEL).expanduser()] if CUSTOM_MODEL
              else [MODEL_FOLDER / 'best.onnx', MODEL_FOLDER / 'my_model.onnx',
-                   MODEL_FOLDER / 'best.pt', MODEL_FOLDER / 'my_model.pt'])
+                   MODEL_FOLDER / 'best.pt', MODEL_FOLDER / 'my_model.pt',
+                   MODEL_FOLDER / 'eesob.onnx'])
     return next((p.resolve() for p in paths if p.is_file()), None)
 
 
@@ -78,17 +80,35 @@ class ModelStore:
 store = ModelStore()
 
 
+@app.on_event('startup')
+async def download_public_lab_checkpoint():
+    # Render's free hosting keeps only build/runtime files, so retrieve the
+    # verified pinned public model when the container starts.
+    await run_in_threadpool(ensure_model, ROOT)
+
+
 @app.get('/api/health')
 def health():
     path = custom_weight_path()
-    can_run = bool(path and (path.suffix.lower() == '.onnx' and importlib.util.find_spec('onnxruntime') is not None
-                             or path.suffix.lower() == '.pt' and importlib.util.find_spec('ultralytics') is not None))
+    can_run = False
+    message = 'No trained detector available'
+    detected_labels = 0
+    if path:
+        try:
+            instance, runtime = store.get('custom')
+            detected_labels = len(instance.names) if runtime == 'onnx' else len(instance.names)
+            can_run = True
+            message = ('EESOB electronic components model ready' if path.name == 'eesob.onnx' else
+                       'Project YOLO model ready')
+        except HTTPException as exc:
+            message = f'Model loading failed: {exc.detail}'
     return {'ok': True, 'custom_model_available': can_run,
             'model_file': path.name if path else None,
             'model_format': path.suffix.lstrip('.') if path else None,
-            'message': 'Model file ready for first inference' if can_run else
-            ('Model file exists but its runtime is missing' if path else
-             'Web app online. Add a trained YOLO11 detection model to enable predictions.'),
+            'model_origin': ('Yacin Hamdi / EESOB pretrained model (2026)' if path and path.name == 'eesob.onnx' else
+                             'Project model' if path else None),
+            'class_count': detected_labels,
+            'message': message,
             'available_models': ['custom'] + (['yolo11n'] if ALLOW_GENERIC else []),
             'live_camera_supported': True}
 
