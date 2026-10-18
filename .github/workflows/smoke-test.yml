@@ -1,0 +1,53 @@
+name: CircuitVision live model smoke test
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/smoke-test.yml', 'backend/**', 'requirements.txt']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test-live-inference:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Test real deployed detector
+        env:
+          BASE_URL: https://circuitvision-yolo-lab.onrender.com
+        run: |
+          python3 - <<'PY'
+          import json,os,struct,time,urllib.request,zlib
+          base=os.environ['BASE_URL']
+          health=None
+          for attempt in range(4):
+              try:
+                  with urllib.request.urlopen(base+'/api/health',timeout=120) as res:
+                      health=json.load(res)
+                  print('Health:',health,flush=True)
+                  if health.get('custom_model_available'):
+                      break
+              except Exception as exc:
+                  print('Attempt',attempt+1,str(exc),flush=True)
+              time.sleep(15)
+          assert health and health.get('custom_model_available') is True, 'Detector failed to load'
+          assert health.get('model_file') == 'eesob.onnx', 'Unexpected model source'
+          width,height=160,160
+          def chunk(kind,data):
+              return struct.pack('!I',len(data))+kind+data+struct.pack('!I',zlib.crc32(kind+data)&0xffffffff)
+          pixels=b''.join(b'\x00'+bytes((120,85,140))*width for _ in range(height))
+          png=b'\x89PNG\r\n\x1a\n'+chunk(b'IHDR',struct.pack('!IIBBBBB',width,height,8,2,0,0,0))+chunk(b'IDAT',zlib.compress(pixels))+chunk(b'IEND',b'')
+          boundary='circuitvision-smoke-2026'
+          form=(b'--'+boundary.encode()+b'\r\nContent-Disposition: form-data; name="confidence"\r\n\r\n0.50\r\n'+
+                b'--'+boundary.encode()+b'\r\nContent-Disposition: form-data; name="image"; filename="sample.png"\r\nContent-Type: image/png\r\n\r\n'+
+                png+b'\r\n--'+boundary.encode()+b'--\r\n')
+          req=urllib.request.Request(base+'/api/detect',data=form,method='POST',headers={'Content-Type':'multipart/form-data; boundary='+boundary})
+          with urllib.request.urlopen(req,timeout=120) as res:
+              prediction=json.load(res)
+          assert isinstance(prediction.get('detections'),list), 'Invalid detection API response'
+          assert prediction.get('image_width')==160, 'Wrong image dimensions'
+          print('Real ONNX inference succeeded:',json.dumps({
+              'model':prediction.get('model'),
+              'processing_ms':prediction.get('processing_ms'),
+              'detections_count':len(prediction['detections'])
+          }))
+          PY
