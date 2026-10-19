@@ -204,3 +204,49 @@ jobs:
               'detections_count':len(prediction['detections'])
           }))
           PY
+
+      - name: Test both live model routes on the same image
+        env:
+          BASE_URL: https://circuitvision-yolo-lab.onrender.com
+        run: |
+          python3 - <<'PY'
+          import json,os,struct,zlib,urllib.request,urllib.error,time
+          base=os.environ['BASE_URL']
+          health=None
+          for attempt in range(6):
+              try:
+                  with urllib.request.urlopen(base+'/api/health',timeout=40) as response:
+                      health=json.load(response)
+                  if health.get('experimental_round3_available') and health.get('class_count')==57:
+                      break
+              except Exception as exc:
+                  print('Health check pending',type(exc).__name__,str(exc),flush=True)
+              time.sleep(10)
+          assert health is not None, 'No reachable CircuitVision backend'
+          assert health.get('custom_model_available'), 'Round 2 not loaded'
+          assert health.get('experimental_round3_available'), 'Round 3 experimental model missing'
+          assert health.get('experimental_round3_class_count')==81, 'Round 3 must expose 81 classes'
+          def chunk(kind,payload):
+              return struct.pack('!I',len(payload))+kind+payload+struct.pack('!I',zlib.crc32(kind+payload)&0xffffffff)
+          width,height=96,96
+          raw=b''.join(b'\x00'+bytes(((x*3+y)%256,(x*2+y*4)%256,(x*5+y*3)%256) for x in range(width)) for y in range(height))
+          png=b'\x89PNG\r\n\x1a\n'+chunk(b'IHDR',struct.pack('!IIBBBBB',width,height,8,2,0,0,0))+chunk(b'IDAT',zlib.compress(raw))+chunk(b'IEND',b'')
+          boundary='circuitvision-comparison-smoke'
+          def payload_for(model):
+              fields=(b'--'+boundary.encode()+b'\r\nContent-Disposition: form-data; name="model"\r\n\r\n'+model.encode()+b'\r\n'+
+                      b'--'+boundary.encode()+b'\r\nContent-Disposition: form-data; name="confidence"\r\n\r\n0.35\r\n'+
+                      b'--'+boundary.encode()+b'\r\nContent-Disposition: form-data; name="image"; filename="same.png"\r\nContent-Type: image/png\r\n\r\n'+png+
+                      b'\r\n--'+boundary.encode()+b'--\r\n')
+              return fields
+          for model in ('custom','round3'):
+              req=urllib.request.Request(base+'/api/detect',method='POST',data=payload_for(model),
+                                         headers={'Content-Type':'multipart/form-data; boundary='+boundary})
+              with urllib.request.urlopen(req,timeout=120) as response:
+                  result=json.load(response)
+              assert result.get('model')==model, f'Wrong model route for {model}: {result}'
+              assert result.get('image_width')==width and result.get('image_height')==height
+              assert isinstance(result.get('detections'),list)
+              print('LIVE INFERENCE OK:',model, 'processing_ms=',result.get('processing_ms'),
+                    'detections=',len(result['detections']),flush=True)
+          print('Side-by-side Round 2 / Round 3 API smoke test PASSED')
+          PY
