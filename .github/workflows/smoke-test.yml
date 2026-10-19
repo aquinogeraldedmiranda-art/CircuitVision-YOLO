@@ -183,7 +183,25 @@ jobs:
               'model':prediction.get('model'),
               'processing_ms':prediction.get('processing_ms'),
               'detections_count':len(prediction['detections'])
-          }))
+          ))
+          # Exercise the new single public YOLO11 model contract, both paths.
+          def send_auto(live_mode):
+              fields=(b'--'+boundary.encode()+
+                  b'\r\nContent-Disposition: form-data; name="model"\r\n\r\nauto\r\n')
+              fields+=(b'--'+boundary.encode()+
+                  b'\r\nContent-Disposition: form-data; name="live"\r\n\r\n'+
+                  (b'true' if live_mode else b'false')+b'\r\n')
+              request=urllib.request.Request(base+'/api/detect',data=fields+form,
+                  method='POST',headers={'Content-Type':'multipart/form-data; boundary='+boundary})
+              with urllib.request.urlopen(request,timeout=150) as res:
+                  data=json.load(res)
+              assert data.get('model')=='CircuitVision YOLO11',data
+              assert isinstance(data.get('detections'),list)
+              assert data.get('inference_strategy')==('low_latency_core' if live_mode else 'core_with_filtered_expansion')
+              print('Unified YOLO11', 'live' if live_mode else 'photo',
+                    'inference succeeded:',data.get('processing_ms'),'ms',flush=True)
+          send_auto(True)
+          send_auto(False)
           PY
 
       - name: Test both live model routes on the same image
