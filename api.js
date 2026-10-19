@@ -56,7 +56,9 @@ export async function detectImage(file, settings, options = {}) {
         detections: result.detections.map((d, index) => ({
           id: index + 1, label: String(d.label || d.class_name || 'Object'),
           confidence: Math.max(0, Math.min(1, Number(d.confidence) || 0)),
-          bbox: Array.isArray(d.bbox) ? d.bbox.map(Number) : null
+          bbox: Array.isArray(d.bbox) ? d.bbox.map(Number) : null,
+          sourceModel: d.source_model || null,
+          reviewStatus: d.review_status || null
         })),
         annotatedImageUrl: result.annotated_image_url || null,
         processingMs: result.processing_ms ?? null,
