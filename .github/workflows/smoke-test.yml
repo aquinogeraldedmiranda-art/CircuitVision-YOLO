@@ -2,7 +2,7 @@ name: CircuitVision live model smoke test
 on:
   push:
     branches: [main]
-    paths: ['.github/workflows/smoke-test.yml', 'backend/**', 'models/**', 'app.js', 'styles.css', 'requirements.txt']
+    paths: ['.github/workflows/smoke-test.yml', 'backend/**', 'models/**', 'app.js', 'styles.css', 'notebooks/**', 'requirements.txt']
   workflow_dispatch:
 permissions:
   contents: read
@@ -28,6 +28,23 @@ jobs:
           }
           console.log('Camera quality, user zoom, threshold and sync controls verified');
           JS
+      - name: Validate CircuitVision training notebooks
+        run: |
+          python - <<'PY'
+          import ast, json, pathlib
+          for p in pathlib.Path('notebooks').glob('*.ipynb'):
+              nb=json.loads(p.read_text())
+              assert nb['nbformat']==4
+              for i,cell in enumerate(nb['cells']):
+                  if cell['cell_type']!='code': continue
+                  source=''.join(cell['source'])
+                  cleaned='\n'.join(line for line in source.splitlines() if not line.startswith('%pip'))
+                  try:
+                      ast.parse(cleaned)
+                  except SyntaxError as e:
+                      raise SyntaxError(f'{p} cell {i}: {e}') from e
+              print('Validated notebook:',p)
+          PY
       - name: Check pinned training archive installation
         run: python -m unittest discover -s tests -p test_project_checkpoint.py -v
       - name: Test real deployed detector
