@@ -20,7 +20,7 @@ jobs:
           import fs from 'node:fs';
           const app=fs.readFileSync('app.js','utf8');
           const cfg=fs.readFileSync('config.js','utf8');
-          for (const test of ['confidence:35','live-zoom','state.settings.zoom','frame synced','liveFrameUrl']) {
+          for (const test of ['confidence:35','live-zoom','state.settings.zoom','smooth preview','liveFrameUrl']) {
             if (!app.includes(test)) throw new Error('Missing camera quality/sync setting: '+test);
           }
           if (!cfg.includes('liveFrameWidth: 640') || !cfg.includes('liveFrameIntervalMs: 80')) {
@@ -35,14 +35,15 @@ jobs:
           const app=fs.readFileSync('app.js','utf8');
           const css=fs.readFileSync('styles.css','utf8');
           const required=[
-            'overlay.classList.toggle(\'has-frame\',hasSyncedFrame)',
+            'overlay.classList.toggle(\'has-frame\',false)',
             'state.liveFrameSize={width:canvas.width,height:canvas.height}',
             'state.liveFrameSize.width',
             'state.liveFrameSize.height',
             "zoom===(Number(state.settings.zoom)===2?2:1)",
           ];
           for(const item of required)if(!app.includes(item))throw new Error('Missing synced camera geometry: '+item);
-          if(!css.includes('.live-overlay.has-frame{background:#081827}'))throw new Error('Double-camera regression: no opaque preview layer');
+          if(!css.includes('.live-overlay,.live-overlay.has-frame{background:transparent!important}'))throw new Error('Smooth preview regression: overlay hides camera');
+          if(!app.includes("const frozenFrame=''"))throw new Error('Smooth preview regression: stale inference snapshot rendered');
           // Portrait video 480x640 in 800x500 container must have horizontal letterbox:
           const W=800,H=500,fw=480,fh=640,s=Math.min(W/fw,H/fh),dx=(W-fw*s)/2;
           if(!(dx>0&&Math.abs(dx-212.5)<0.01))throw new Error('Portrait letterbox regression');

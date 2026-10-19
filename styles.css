@@ -49,3 +49,7 @@
 .live-inference-frame{z-index:0}
 .live-box{z-index:1}
 .live-status{z-index:3}
+
+/* Smooth camera: never cover the hardware-accelerated <video> with a snapshot. */
+.live-overlay,.live-overlay.has-frame{background:transparent!important}
+.live-inference-frame{display:none!important}
