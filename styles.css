@@ -40,3 +40,12 @@
    to a newer moving camera frame. Underlying video still captures new frames. */
 .live-inference-frame{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block;pointer-events:none}
 .live-box{box-sizing:border-box}
+
+/* Fix Android double-camera / split-frame bug. The captured portrait JPEG
+   occupies only the center of a wide preview; opaque letterbox margins must
+   completely conceal the newer moving <video> underneath, never duplicate it. */
+.live-overlay{z-index:2}
+.live-overlay.has-frame{background:#081827}
+.live-inference-frame{z-index:0}
+.live-box{z-index:1}
+.live-status{z-index:3}

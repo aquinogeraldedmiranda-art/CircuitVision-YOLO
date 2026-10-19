@@ -28,6 +28,26 @@ jobs:
           }
           console.log('Camera quality, user zoom, threshold and sync controls verified');
           JS
+      - name: Check portrait camera frame alignment regression
+        run: |
+          node --input-type=module - <<'JS'
+          import fs from 'node:fs';
+          const app=fs.readFileSync('app.js','utf8');
+          const css=fs.readFileSync('styles.css','utf8');
+          const required=[
+            'overlay.classList.toggle(\'has-frame\',hasSyncedFrame)',
+            'state.liveFrameSize={width:canvas.width,height:canvas.height}',
+            'state.liveFrameSize.width',
+            'state.liveFrameSize.height',
+            "zoom===(Number(state.settings.zoom)===2?2:1)",
+          ];
+          for(const item of required)if(!app.includes(item))throw new Error('Missing synced camera geometry: '+item);
+          if(!css.includes('.live-overlay.has-frame{background:#081827}'))throw new Error('Double-camera regression: no opaque preview layer');
+          // Portrait video 480x640 in 800x500 container must have horizontal letterbox:
+          const W=800,H=500,fw=480,fh=640,s=Math.min(W/fw,H/fh),dx=(W-fw*s)/2;
+          if(!(dx>0&&Math.abs(dx-212.5)<0.01))throw new Error('Portrait letterbox regression');
+          console.log('Frame, boxes and portrait letterboxing stay registered');
+          JS
       - name: Validate CircuitVision training notebooks
         run: |
           python - <<'PY'
