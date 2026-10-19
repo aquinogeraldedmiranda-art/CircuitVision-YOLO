@@ -55,7 +55,16 @@ async function refreshBackendStatus(){
   }catch(_){modelStatus.online=false;modelStatus.customReady=false;modelStatus.round3Ready=false;modelStatus.message='Website service unavailable • refresh or try again later';}
   updateModelStatus();return modelStatus;
 }
-function updateModelStatus(){document.querySelectorAll('#backend-health').forEach(n=>n.textContent=modelStatus.message);document.querySelectorAll('.model-status').forEach(n=>n.className='model-status '+(modelStatus.online&&modelStatus.customReady?'ready':modelStatus.online?'missing':'offline'));}
+function updateModelStatus(){
+  document.querySelectorAll('#backend-health').forEach(n=>n.textContent=modelStatus.message);
+  document.querySelectorAll('.model-status').forEach(n=>n.className='model-status '+(modelStatus.online&&modelStatus.customReady?'ready':modelStatus.online?'missing':'offline'));
+  // Health checks finish asynchronously. Enable the already-rendered selector
+  // without resetting the camera preview or clearing tracking state.
+  document.querySelectorAll('option[value="round3"]').forEach(option=>{
+    option.disabled=!modelStatus.round3Ready;
+    option.textContent='Round 3 · Experimental (81 classes)'+(modelStatus.round3Ready?'':' — upload pending');
+  });
+}
 
 function route(page){page=pages.has(page)?page:'home';location.hash=`/${page}`;}
 function toast(message,error=false){const area=document.getElementById('toast-root');const t=document.createElement('div');t.className='toast'+(error?' error':'');t.setAttribute('role','status');t.textContent=message;area.appendChild(t);setTimeout(()=>t.remove(),4700);}

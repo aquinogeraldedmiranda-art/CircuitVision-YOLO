@@ -27,6 +27,16 @@ jobs:
           }
           console.log('Round 2 default and Round 3 optional selector validated');
           JS
+      - name: Check live Round 3 selector activates after health checks
+        run: |
+          node --input-type=module - <<'JS'
+          import fs from 'node:fs';
+          const app=fs.readFileSync('app.js','utf8');
+          for(const phrase of ['option.disabled=!modelStatus.round3Ready', 'option.textContent=\'Round 3 · Experimental (81 classes)\'', "option[value=\"round3\"]"]){
+            if(!app.includes(phrase))throw Error('Async Round 3 selector update missing: '+phrase);
+          }
+          console.log('Async model readiness enables selector without restarting camera');
+          JS
       - name: Check browser JavaScript syntax
         run: node --check app.js && node --check api.js && node --check demo.js && node --check motion_tracker.mjs && node --check component_details.mjs
       - name: Confirm browser tracker module served by FastAPI
