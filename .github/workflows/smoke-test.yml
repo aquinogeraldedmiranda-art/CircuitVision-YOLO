@@ -32,6 +32,8 @@ jobs:
           JS
       - name: Test transient upload connection recovery
         run: node tests/test_api_transport.mjs
+      - name: Validate unified three-stage training notebook
+        run: python tests/test_unified_three_stage_notebook.py
       - name: Check browser JavaScript syntax
         run: node --check app.js && node --check api.js && node --check demo.js && node --check motion_tracker.mjs && node --check component_details.mjs
       - name: Confirm browser tracker module served by FastAPI
