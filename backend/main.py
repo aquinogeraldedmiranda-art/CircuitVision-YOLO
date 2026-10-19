@@ -19,6 +19,7 @@ from fastapi.responses import FileResponse
 from PIL import Image, ImageOps, UnidentifiedImageError
 
 from backend.onnx_inference import ONNXDetector
+from backend.smart_fusion import auto_fuse
 from backend.pretrained import ensure_model
 from backend.model_archive import install_uploaded_checkpoint, install_accuracy_round2, install_experimental_round3, MODEL_SHA256
 
@@ -128,6 +129,10 @@ def health():
             message = f'Model loading failed: {exc.detail}'
     round3_ready = (MODEL_FOLDER / 'round3.onnx').is_file() and (MODEL_FOLDER / 'round3_classes.json').is_file()
     return {'ok': True, 'custom_model_available': can_run,
+            'unified_yolo11_available': can_run,
+            'unified_video_strategy': 'verified_core_yolo11_with_browser_tracking',
+            'unified_still_strategy': 'core_plus_filtered_new_classes_when_available',
+            'specialist_value_model_available': False,
             'model_file': path.name if path else None,
             'model_format': path.suffix.lstrip('.') if path else None,
             'model_origin': ('Yacin Hamdi / EESOB pretrained model (2026)' if path and path.name == 'eesob.onnx' else
@@ -158,7 +163,23 @@ def decode_image(data: bytes) -> Image.Image:
         raise HTTPException(415, 'Could not decode the image. Use a JPG, PNG or WEBP file.') from exc
 
 
-def infer(rgb: Image.Image, model: str, conf: float) -> list[dict]:
+def infer(rgb: Image.Image, model: str, conf: float, live: bool = False) -> list[dict]:
+    if model == 'auto':
+        # Fast video uses the trusted student-trained core model, preserving
+        # camera responsiveness. Stills can add carefully filtered *new*
+        # equipment categories from Round 3 without replacing core labels.
+        primary = infer(rgb, 'custom', conf)
+        if live or not (MODEL_FOLDER / 'round3.onnx').is_file():
+            return primary
+        try:
+            extra = infer(rgb, 'round3', max(.55, conf))
+            baseline, _runtime = store.get('custom')
+            return auto_fuse(primary, extra, baseline.names.values(),
+                             minimum_extra_confidence=max(.55, conf))
+        except Exception:
+            # Optional extended categories must never take down the normal
+            # electronics detector. Leave the stable model operational.
+            return primary
     instance, runtime = store.get(model)
     if runtime == 'onnx':
         return instance.predict(rgb, conf)
@@ -191,8 +212,9 @@ async def detect(
     model: Annotated[str, Form()] = 'custom',
     show_boxes: Annotated[bool, Form()] = True,
     show_labels: Annotated[bool, Form()] = True,
+    live: Annotated[bool, Form()] = False,
 ):
-    if model not in {'custom', 'round3', 'yolo11n'}:
+    if model not in {'auto', 'custom', 'round3', 'yolo11n'}:
         raise HTTPException(422, 'Invalid model selection')
     if model == 'yolo11n' and not ALLOW_GENERIC:
         raise HTTPException(422, 'Generic model disabled on this deployment')
@@ -204,8 +226,9 @@ async def detect(
         raise HTTPException(413, f'Image exceeds {MAX_BYTES // (1024*1024)} MB')
     start = time.perf_counter()
     rgb = await run_in_threadpool(decode_image, data)
-    detections = await run_in_threadpool(infer, rgb, model, confidence)
-    return {'detections': detections, 'model': model,
+    detections = await run_in_threadpool(infer, rgb, model, confidence, live)
+    return {'detections': detections, 'model': 'CircuitVision YOLO11' if model == 'auto' else model,
+            'inference_strategy': ('low_latency_core' if live else 'core_with_filtered_expansion') if model == 'auto' else model,
             'image_width': rgb.width, 'image_height': rgb.height,
             'processing_ms': round((time.perf_counter()-start)*1000,1),
             'annotated_image_url': None}

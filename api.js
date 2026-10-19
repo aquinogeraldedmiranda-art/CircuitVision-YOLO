@@ -17,7 +17,8 @@ export async function detectImage(file, settings, options = {}) {
   const form = new FormData();
   form.append('image', file, file.name || 'capture.png');
   form.append('confidence', String(settings.confidence / 100));
-  form.append('model', settings.model || 'custom');
+  form.append('model', settings.model || 'auto');
+  form.append('live', String(isLive));
   form.append('show_boxes', String(settings.showBoxes));
   form.append('show_labels', String(settings.showLabels));
   for (let attempt = 0; attempt <= retries; attempt++) {
@@ -75,7 +76,7 @@ export async function detectImage(file, settings, options = {}) {
           await wait(900 * (attempt + 1));
           continue;
         }
-        throw new Error('Connection to CircuitVision was interrupted. The image was not analyzed. Check your connection and retry; both YOLO models remain installed.');
+        throw new Error('Connection to CircuitVision was interrupted. The image was not analyzed. Check your connection and retry; the YOLO11 detector remains available.');
       }
       throw err;
     } finally {

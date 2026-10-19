@@ -12,45 +12,26 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - name: Check Round 3 model option and safe fallback
+      - name: Validate single YOLO11 public workflow and safe automatic fusion
         run: |
           python -m unittest discover -s tests -p test_round3_side_by_side.py -v
+          python -m unittest discover -s tests -p test_smart_fusion.py -v
           node --input-type=module - <<'JS'
           import fs from 'node:fs';
           const app=fs.readFileSync('app.js','utf8');
           const back=fs.readFileSync('backend/main.py','utf8');
-          for(const x of ["Round 2 · Stable","Round 3 · Experimental","modelStatus.round3Ready","state.settings.model='custom'"]){
-            if(!app.includes(x))throw Error('Missing camera model control '+x);
-          }
-          for(const x of ["'experimental_round3_available'","'round3'","install_experimental_round3","'round3_classes.json'"]){
-            if(!back.includes(x))throw Error('Missing backend selector '+x);
-          }
-          console.log('Round 2 default and Round 3 optional selector validated');
-          JS
-      - name: Check live Round 3 selector activates after health checks
-        run: |
-          node --input-type=module - <<'JS'
-          import fs from 'node:fs';
-          const app=fs.readFileSync('app.js','utf8');
-          for(const phrase of ['option.disabled=!modelStatus.round3Ready', 'option.textContent=\'Round 3 · Experimental (81 classes)\'', "option[value=\"round3\"]"]){
-            if(!app.includes(phrase))throw Error('Async Round 3 selector update missing: '+phrase);
-          }
-          console.log('Async model readiness enables selector without restarting camera');
+          const api=fs.readFileSync('api.js','utf8');
+          if(!app.includes("model:'auto'"))throw Error('Unified YOLO11 is not the default');
+          if(!app.includes('CircuitVision YOLO11 · Automatic Detection'))throw Error('No unified YOLO11 user label');
+          if(app.includes('<select id="camera-model"') || app.includes('<select id="model"'))throw Error('Exposed internal model selector');
+          if(app.includes('data-action="compare-models"'))throw Error('Exposed obsolete model comparison UI');
+          if(!api.includes("form.append('live', String(isLive))"))throw Error('Live camera hint missing');
+          if(!back.includes("if model == 'auto':") || !back.includes("if live or not"))throw Error('Low-latency auto strategy missing');
+          if(!back.includes("auto_fuse(primary, extra"))throw Error('Missing conservative new-class still-image expansion');
+          console.log('One public YOLO11 model: fast camera, cautious expanded still image detection');
           JS
       - name: Test transient upload connection recovery
         run: node tests/test_api_transport.mjs
-      - name: Check image comparison UI
-        run: |
-          node --input-type=module - <<'JS'
-          import fs from 'node:fs';
-          const app=fs.readFileSync('app.js','utf8');
-          const css=fs.readFileSync('styles.css','utf8');
-          for(const term of ['async function compareModels()', "model:'round3'", "model:'round3'", 'comparisonPanel()', 'state.requestError', 'data-action="compare-models"']){
-            if(!app.includes(term))throw Error('Comparison feature missing: '+term);
-          }
-          if(!css.includes('.comparison-grid'))throw Error('Mobile comparison styling missing');
-          console.log('Same-image comparison, sequential inference and UI present');
-          JS
       - name: Check browser JavaScript syntax
         run: node --check app.js && node --check api.js && node --check demo.js && node --check motion_tracker.mjs && node --check component_details.mjs
       - name: Confirm browser tracker module served by FastAPI
