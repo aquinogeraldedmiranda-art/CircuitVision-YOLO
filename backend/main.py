@@ -191,7 +191,7 @@ async def detect(
             'annotated_image_url': None}
 
 
-FRONTEND_FILES = {'index.html', 'app.js', 'api.js', 'demo.js', 'config.js', 'styles.css', 'robots.txt', 'sitemap.xml'}
+FRONTEND_FILES = {'index.html', 'app.js', 'api.js', 'demo.js', 'config.js', 'styles.css', 'motion_tracker.mjs', 'robots.txt', 'sitemap.xml'}
 
 
 @app.get('/')
@@ -208,4 +208,4 @@ def favicon():
 def frontend_asset(filename: str):
     if filename not in FRONTEND_FILES:
         raise HTTPException(404, 'Not found')
-    return FileResponse(ROOT / filename)
+    return FileResponse(ROOT / filename, media_type='text/javascript' if filename.endswith('.mjs') else None)
