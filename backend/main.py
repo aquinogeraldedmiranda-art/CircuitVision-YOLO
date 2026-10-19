@@ -20,7 +20,7 @@ from PIL import Image, ImageOps, UnidentifiedImageError
 
 from backend.onnx_inference import ONNXDetector
 from backend.pretrained import ensure_model
-from backend.model_archive import install_uploaded_checkpoint, install_accuracy_round2, MODEL_SHA256
+from backend.model_archive import install_uploaded_checkpoint, install_accuracy_round2, install_experimental_round3, MODEL_SHA256
 
 ROOT = Path(__file__).resolve().parent.parent
 MODEL_FOLDER = ROOT / 'models'
@@ -46,6 +46,7 @@ class ModelStore:
         self.path: str | None = None
         self.model: object | None = None
         self.generic: object | None = None
+        self.round3: tuple | None = None
 
     def get(self, kind: str):
         with self.lock:
@@ -59,6 +60,20 @@ class ModelStore:
                     except Exception as exc:
                         raise HTTPException(503, 'Generic model unavailable; install Ultralytics for local testing.') from exc
                 return self.generic, 'pt'
+            if kind == 'round3':
+                path3 = MODEL_FOLDER / 'round3.onnx'
+                labels3 = MODEL_FOLDER / 'round3_classes.json'
+                if not path3.is_file() or not labels3.is_file():
+                    raise HTTPException(503, 'Round 3 experimental model is not uploaded yet. Select Round 2 for now.')
+                if self.round3 is None:
+                    try:
+                        instance3 = ONNXDetector(path3, labels3)
+                        if len(instance3.names) != 81:
+                            raise ValueError('Round 3 must have 81 classes')
+                        self.round3 = (instance3, 'onnx')
+                    except Exception as exc:
+                        raise HTTPException(503, f'Cannot load Round 3: {exc}') from exc
+                return self.round3
             path = custom_weight_path()
             if path is None:
                 raise HTTPException(503, 'Custom YOLO weights are missing. Export best.onnx from Colab and add it to models/.')
@@ -92,6 +107,8 @@ async def download_public_lab_checkpoint():
         installed_student_model = await run_in_threadpool(install_uploaded_checkpoint, ROOT)
     if not installed_student_model:
         await run_in_threadpool(ensure_model, ROOT)
+    # Experimental weights use independent paths; never replace Round 2.
+    await run_in_threadpool(install_experimental_round3, ROOT)
 
 
 @app.get('/api/health')
@@ -109,6 +126,7 @@ def health():
                        'CircuitVision student-trained YOLO11n model ready')
         except HTTPException as exc:
             message = f'Model loading failed: {exc.detail}'
+    round3_ready = (MODEL_FOLDER / 'round3.onnx').is_file() and (MODEL_FOLDER / 'round3_classes.json').is_file()
     return {'ok': True, 'custom_model_available': can_run,
             'model_file': path.name if path else None,
             'model_format': path.suffix.lstrip('.') if path else None,
@@ -120,7 +138,9 @@ def health():
                               if path and path.name == 'best.onnx' else None),
             'class_count': detected_labels,
             'message': message,
-            'available_models': ['custom'] + (['yolo11n'] if ALLOW_GENERIC else []),
+            'available_models': ['custom'] + (['round3'] if round3_ready else []) + (['yolo11n'] if ALLOW_GENERIC else []),
+            'experimental_round3_available': round3_ready,
+            'experimental_round3_class_count': 81 if round3_ready else None,
             'live_camera_supported': True}
 
 
@@ -172,7 +192,7 @@ async def detect(
     show_boxes: Annotated[bool, Form()] = True,
     show_labels: Annotated[bool, Form()] = True,
 ):
-    if model not in {'custom', 'yolo11n'}:
+    if model not in {'custom', 'round3', 'yolo11n'}:
         raise HTTPException(422, 'Invalid model selection')
     if model == 'yolo11n' and not ALLOW_GENERIC:
         raise HTTPException(422, 'Generic model disabled on this deployment')

@@ -113,3 +113,60 @@ def install_accuracy_round2(root: Path) -> bool:
         temp.write_bytes(data)
         os.replace(temp, output)
     return True
+
+
+# Experimental Round 3 checkpoint: separate from the approved Round 2 files.
+# This model activates only after the student uploads the EXACT inspected ZIP.
+ROUND3_ARCHIVE_NAME = 'CircuitVision_Round3_Candidate.zip'
+ROUND3_ARCHIVE_SHA256 = 'bb318c2c8afd6da55d6261bbb0feff6ff4458f0e270e8e8c27dba649c81ddffc'
+ROUND3_FILES_SHA256 = {
+    'best.onnx': '936404735476e877ac484ef30adc601c61959c7cf3cc1f7e5cf1f9779d15a38b',
+    'classes.json': 'ccfba0238b8f9aebed4c9b2071784eac8b1f956992f451f47dd04d96cd5cedf5',
+    'TRAINING_REPORT.json': 'fdf5aaa35d23106adfe8ffc2d83097396af1ea3913d11defce51681d25401b6c',
+}
+ROUND3_MEMBERS = {'TRAINING_REPORT.json', 'classes.json', 'best.pt',
+                  'best.onnx', 'DATASET_SOURCES.txt'}
+
+
+def install_experimental_round3(root: Path) -> bool:
+    """Install Round 3 in dedicated files; never replace approved Round 2."""
+    folder = root / 'models'
+    archive = folder / ROUND3_ARCHIVE_NAME
+    if not archive.is_file():
+        return False
+    if archive.stat().st_size > 19_000_000:
+        raise RuntimeError('Round 3 ZIP exceeds expected maximum size')
+    if sha256(archive.read_bytes()) != ROUND3_ARCHIVE_SHA256:
+        raise RuntimeError('Round 3 ZIP hash mismatch; approved Round 2 remains unchanged')
+    verified = {}
+    with zipfile.ZipFile(archive, 'r') as z:
+        if set(z.namelist()) != ROUND3_MEMBERS or len(z.infolist()) != len(ROUND3_MEMBERS):
+            raise RuntimeError('Round 3 ZIP contains unexpected files')
+        if sum(i.file_size for i in z.infolist()) > 25_000_000:
+            raise RuntimeError('Round 3 ZIP uncompressed size too large')
+        for name, expected in ROUND3_FILES_SHA256.items():
+            content = z.read(name)
+            if sha256(content) != expected:
+                raise RuntimeError(f'Round 3 {name} hash mismatch')
+            verified[name] = content
+    mapping = json.loads(verified['classes.json'])
+    report = json.loads(verified['TRAINING_REPORT.json'])
+    old = report.get('old_classes')
+    names = report.get('all_classes')
+    if (not isinstance(mapping, dict) or len(mapping) != 81 or
+            not isinstance(old, list) or len(old) != 57 or
+            not isinstance(names, list) or len(names) != 81 or
+            set(mapping.keys()) != {str(i) for i in range(81)} or
+            [mapping[str(i)] for i in range(81)] != names or
+            names[:57] != old or not PRIORITY_LABELS.issubset(set(names))):
+        raise RuntimeError('Round 3 class order or training report mismatch')
+    for source, output_name in (('best.onnx', 'round3.onnx'),
+                                ('classes.json', 'round3_classes.json')):
+        output = folder / output_name
+        content = verified[source]
+        if output.is_file() and sha256(output.read_bytes()) == ROUND3_FILES_SHA256[source]:
+            continue
+        staging = folder / (output_name + '.installing')
+        staging.write_bytes(content)
+        os.replace(staging, output)
+    return True
