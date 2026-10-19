@@ -34,7 +34,7 @@ const link=(href,label,cls='')=>`<a href="#/${href}" class="${cls}" data-link>${
 const button=(label,action,cls='button',attr='')=>`<button type="button" class="${cls}" data-action="${action}" ${attr}>${label}</button>`;
 const app=document.getElementById('app');
 const state={page:readHash(),menuOpen:false,file:null,fileURL:null,fileSource:null,settings:{confidence:50,model:'custom',showBoxes:true,showLabels:true,summary:true},
-  result:{detections:[],isDemo:false},resultSource:'not-run',resultFile:null,processing:false,stream:null,cameras:[],cameraId:'',cameraError:'',capturedCount:0,liveEnabled:false,liveBusy:false,liveTimer:null,liveDetections:[],liveStatus:'',liveFrames:0,liveProcessingMs:0};
+  result:{detections:[],isDemo:false},resultSource:'not-run',resultFile:null,processing:false,stream:null,cameras:[],cameraId:'',cameraError:'',capturedCount:0,liveEnabled:false,liveBusy:false,liveTimer:null,liveDetections:[],liveFrameUrl:null,liveStatus:'',liveFrames:0,liveProcessingMs:0};
 function readHash(){const slug=location.hash.replace(/^#\/?/,'').split('?')[0].toLowerCase();return pages.has(slug)?slug:'home';}
 function getMode(){return backendConfigured()?'api':'demo';}
 function detectionModeSwitch(active){return `<nav class="detection-mode-switch" aria-label="Detection mode">${link('camera',I('camera')+' <span>Live camera detector</span>',active==='camera'?'active':'')}${link('upload',I('upload')+' <span>Upload image</span>',active==='upload'?'active':'')}</nav>`;}
@@ -85,6 +85,7 @@ function stopCamera(reRender=true){stopLiveDetection();if(state.stream){state.st
 function stopLiveDetection(){
   state.liveEnabled=false;cameraSession+=1;clearTimeout(state.liveTimer);state.liveTimer=null;
   state.liveDetections=[];state.liveStatus='';
+  if(state.liveFrameUrl){URL.revokeObjectURL(state.liveFrameUrl);state.liveFrameUrl=null;}
 }
 
 async function toggleLiveDetection(){
@@ -105,10 +106,17 @@ function updateLiveOverlay(){
   const W=container.clientWidth,H=container.clientHeight;
   const vw=video.videoWidth||W,vh=video.videoHeight||H;
   const scale=Math.min(W/vw,H/vh),dx=(W-vw*scale)/2,dy=(H-vh*scale)/2;
-  overlay.innerHTML=state.settings.showBoxes?state.liveDetections.filter(d=>d.bbox?.length===4).map(d=>{
+  // Display the *same captured frame* sent for inference. Drawing older boxes on
+  // a continuously moving live <video> caused boxes to appear above objects.
+  // The <video> keeps recording behind the matched inference frame.
+  const frozenFrame=state.liveEnabled&&state.liveFrameUrl
+    ? `<img class="live-inference-frame" src="${escapeHTML(state.liveFrameUrl)}" alt="" draggable="false">`
+    : '';
+  const boxes=state.settings.showBoxes?state.liveDetections.filter(d=>d.bbox?.length===4).map(d=>{
     const [x1,y1,x2,y2]=d.bbox;
     return `<div class="live-box" style="left:${(dx+x1*vw*scale)/W*100}%;top:${(dy+y1*vh*scale)/H*100}%;width:${(x2-x1)*vw*scale/W*100}%;height:${(y2-y1)*vh*scale/H*100}%">${state.settings.showLabels?`<span>${escapeHTML(d.label)} ${d.confidence.toFixed(2)}</span>`:''}</div>`;
   }).join(''):'';
+  overlay.innerHTML=frozenFrame+boxes;
   const count=$('#live-count');if(count)count.textContent=String(state.liveDetections.length);
   const frames=$('#live-frames');if(frames)frames.textContent=String(state.liveFrames);
   const speed=$('#live-speed');if(speed)speed.textContent=state.liveProcessingMs?`${state.liveProcessingMs} ms`:'—';
@@ -128,7 +136,18 @@ async function runLiveLoop(session){
     if(!blob)throw new Error('Unable to capture frame');
     const file=new File([blob],'live-frame.jpg',{type:'image/jpeg'});
     const result=await detectImage(file,state.settings);
-    if(state.liveEnabled&&session===cameraSession){state.liveDetections=result.detections;state.liveFrames++;state.liveProcessingMs=Math.round(result.processingMs||0);state.liveStatus=`● LIVE YOLO • ${result.detections.length} detected`;updateLiveOverlay();}
+    if(state.liveEnabled&&session===cameraSession){
+      // Keep this exact captured JPEG displayed with the boxes inferred from it.
+      const nextFrameURL=URL.createObjectURL(blob);
+      const previousFrameURL=state.liveFrameUrl;
+      state.liveFrameUrl=nextFrameURL;
+      state.liveDetections=result.detections;
+      state.liveFrames++;
+      state.liveProcessingMs=Math.round(result.processingMs||0);
+      state.liveStatus=`● LIVE YOLO • ${result.detections.length} detected • frame synced`;
+      updateLiveOverlay();
+      if(previousFrameURL)URL.revokeObjectURL(previousFrameURL);
+    }
   }catch(e){if(state.liveEnabled&&session===cameraSession){state.liveStatus=`YOLO API: ${e.message}`;updateLiveOverlay();}}
   finally{state.liveBusy=false;if(state.liveEnabled&&session===cameraSession)state.liveTimer=setTimeout(()=>runLiveLoop(session),Math.max(100,cfg.liveFrameIntervalMs||300))}
 }
