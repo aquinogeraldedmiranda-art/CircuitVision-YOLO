@@ -13,7 +13,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Check browser JavaScript syntax
-        run: node --check app.js && node --check api.js && node --check demo.js && node --check motion_tracker.mjs
+        run: node --check app.js && node --check api.js && node --check demo.js && node --check motion_tracker.mjs && node --check component_details.mjs
       - name: Confirm browser tracker module served by FastAPI
         run: |
           python - <<'PY'
@@ -22,12 +22,26 @@ jobs:
           assign=next(n for n in module.body if isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id=='FRONTEND_FILES' for t in n.targets))
           files=ast.literal_eval(assign.value)
           assert 'motion_tracker.mjs' in files, 'FastAPI must serve browser tracker module'
+          assert 'component_details.mjs' in files, 'FastAPI must serve component guide module'
           assert pathlib.Path('motion_tracker.mjs').exists(), 'Tracker module absent'
+          assert pathlib.Path('component_details.mjs').exists(), 'Guide module absent'
           assert "text/javascript" in pathlib.Path('backend/main.py').read_text()
           print('FastAPI includes tracker module with JavaScript MIME type')
           PY
+      - name: Test component reference and resistor color value calculator
+        run: node tests/test_component_details.mjs
       - name: Test browser motion tracking and delayed YOLO replay
         run: node tests/test_motion_tracker.mjs
+      - name: Check component guide available from detection results
+        run: |
+          node --input-type=module - <<'JS'
+          import fs from 'node:fs';
+          const a=fs.readFileSync('app.js','utf8');
+          for(const s of ["state.page==='guide'?componentGuide()","data-action=\"component-detail\"","id=\"resistor-band-count\"","resistorBands5","decodeResistorBands(bands)"]){
+            if(!a.includes(s))throw Error('Guide not connected: '+s);
+          }
+          console.log('Component details reachable from live and still-image results');
+          JS
       - name: Check small-part live camera defaults
         run: |
           node --input-type=module - <<'JS'

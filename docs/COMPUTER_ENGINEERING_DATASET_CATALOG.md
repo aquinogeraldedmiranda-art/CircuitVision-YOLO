@@ -44,3 +44,22 @@ This is a **proposed scope**, not a claim the existing model can detect them all
 ## Motion-tracking deployment notes
 
 The existing **Round 2 trained ONNX** continues to provide class labels, scores and exact detection anchors. Browser-side grayscale patch tracking estimates in-between position updates, replays frames buffered during each server inference, and resets on zoom/camera session changes. It does not add classes, raise detection mAP or guarantee tracking during occlusion, blur or fast movement.
+
+
+## Resistor value-reading research datasets (candidate for a separate value model)
+
+This addresses a task distinct from YOLO object detection: accurately reading each colored band, ordering 4/5-band stripes, calculating resistance and optionally checking the value against a multimeter. Individual band masks alone do not supply the color and digit of every band.
+
+| Candidate source | Public description | License as published | Link |
+|---|---|---|---|
+| Resistor Color Band Detection / image | ~134 images, 11 color classes, YOLO11 object detection | Public Domain | https://universe.roboflow.com/image-gpmgb/resistor-color-band-detection-fnbak |
+| Band Detection / ResistorAI | ~1,603 images, one segmentation class resistor-color-bands (locates areas, does not identify colors) | CC BY 4.0 | https://universe.roboflow.com/resistorai/band-detection |
+| Resistor Color Band Detection5 / Rochester Institute Of Technology Dubai | ~356 project images; 12 color classes including gold and silver | Public Domain | https://universe.roboflow.com/rochester-institute-of-technology-dubai-6oda9/resistor-color-band-detection5 |
+| Resistor Value Determination / Resistor Color Code | ~296 images; semantic segmentation | CC BY 4.0 | https://universe.roboflow.com/resistor-color-code/resistor-value-determination |
+| Resistor Detection / Circuits Project | ~756 images: resistors, wires, breadboards | CC BY 4.0 | https://universe.roboflow.com/circuits-project/resistor-detection-5azes |
+
+**Status**: verified links and published licenses only; the images have NOT yet been downloaded, audited, merged or trained here. Some online entries report inconsistent counts for overview vs model versions, so verify the chosen version after export. Recheck rights, annotation types and author credits.
+
+**Required training-label design**: resistor bbox, per-band bbox/mask and color label, left-to-right or tolerance-side orientation, band_count, independently checked resistance_ohms, tolerance_percent, specimen/scene grouping and photo conditions. Leave hard-to-read bands as unknown; never silently guess a measured value. Compare automatic decoding to a fixed photo-level test set and report exact-value accuracy, value-within-tolerance accuracy, false confident readings, and inference time. A close-up capture workflow is likely necessary on a phone.
+
+**Implemented now**: a 4-/5-band manual color decoder and component reference page, powered by deterministic color-code tables. The camera still identifies only the original **57** trained categories; manual values are explicitly NOT attributed to YOLO predictions. Color standard cross-checked with DigiKey's published 4-/5-band calculator: https://www.digikey.com/en/resources/conversion-calculators/conversion-calculator-resistor-color-code .
