@@ -20,6 +20,7 @@ from PIL import Image, ImageOps, UnidentifiedImageError
 
 from backend.onnx_inference import ONNXDetector
 from backend.pretrained import ensure_model
+from backend.model_archive import install_uploaded_checkpoint, MODEL_SHA256
 
 ROOT = Path(__file__).resolve().parent.parent
 MODEL_FOLDER = ROOT / 'models'
@@ -84,7 +85,9 @@ store = ModelStore()
 async def download_public_lab_checkpoint():
     # Render's free hosting keeps only build/runtime files, so retrieve the
     # verified pinned public model when the container starts.
-    await run_in_threadpool(ensure_model, ROOT)
+    installed_student_model = await run_in_threadpool(install_uploaded_checkpoint, ROOT)
+    if not installed_student_model:
+        await run_in_threadpool(ensure_model, ROOT)
 
 
 @app.get('/api/health')
@@ -99,14 +102,15 @@ def health():
             detected_labels = len(instance.names) if runtime == 'onnx' else len(instance.names)
             can_run = True
             message = ('EESOB electronic components model ready' if path.name == 'eesob.onnx' else
-                       'Project YOLO model ready')
+                       'CircuitVision student-trained YOLO11n model ready')
         except HTTPException as exc:
             message = f'Model loading failed: {exc.detail}'
     return {'ok': True, 'custom_model_available': can_run,
             'model_file': path.name if path else None,
             'model_format': path.suffix.lstrip('.') if path else None,
             'model_origin': ('Yacin Hamdi / EESOB pretrained model (2026)' if path and path.name == 'eesob.onnx' else
-                             'Project model' if path else None),
+                             'CircuitVision student-trained combined dataset YOLO11n' if path else None),
+            'model_version': ('circuitvision-combined-57-yolo11n' if path and path.name == 'best.onnx' else None),
             'class_count': detected_labels,
             'message': message,
             'available_models': ['custom'] + (['yolo11n'] if ALLOW_GENERIC else []),

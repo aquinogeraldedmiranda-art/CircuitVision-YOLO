@@ -2,15 +2,18 @@ name: CircuitVision live model smoke test
 on:
   push:
     branches: [main]
-    paths: ['.github/workflows/smoke-test.yml', 'backend/**', 'requirements.txt']
+    paths: ['.github/workflows/smoke-test.yml', 'backend/**', 'models/**', 'requirements.txt']
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
   test-live-inference:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 15
     steps:
+      - uses: actions/checkout@v4
+      - name: Check pinned training archive installation
+        run: python -m unittest discover -s tests -p test_project_checkpoint.py -v
       - name: Test real deployed detector
         env:
           BASE_URL: https://circuitvision-yolo-lab.onrender.com
@@ -18,19 +21,25 @@ jobs:
           python3 - <<'PY'
           import json,os,struct,time,urllib.request,zlib
           base=os.environ['BASE_URL']
+          student_zip_present = os.path.isfile('models/CircuitVision_Trained_Model.zip')
+          target_model = 'best.onnx' if student_zip_present else 'eesob.onnx'
+          target_classes = 57 if student_zip_present else 48
           health=None
-          for attempt in range(4):
+          for attempt in range(20):
               try:
                   with urllib.request.urlopen(base+'/api/health',timeout=120) as res:
                       health=json.load(res)
                   print('Health:',health,flush=True)
-                  if health.get('custom_model_available'):
+                  if (health.get('custom_model_available') and
+                      health.get('model_file')==target_model and
+                      health.get('class_count')==target_classes):
                       break
               except Exception as exc:
                   print('Attempt',attempt+1,str(exc),flush=True)
-              time.sleep(15)
+              time.sleep(25)
           assert health and health.get('custom_model_available') is True, 'Detector failed to load'
-          assert health.get('model_file') == 'eesob.onnx', 'Unexpected model source'
+          assert health.get('model_file') == target_model, 'Unexpected model source'
+          assert health.get('class_count') == target_classes, 'Unexpected model class count'
           width,height=160,160
           def chunk(kind,data):
               return struct.pack('!I',len(data))+kind+data+struct.pack('!I',zlib.crc32(kind+data)&0xffffffff)
@@ -46,6 +55,7 @@ jobs:
           assert isinstance(prediction.get('detections'),list), 'Invalid detection API response'
           assert prediction.get('image_width')==160, 'Wrong image dimensions'
           print('Real ONNX inference succeeded:',json.dumps({
+              'model_file': target_model, 'class_count': target_classes,
               'model':prediction.get('model'),
               'processing_ms':prediction.get('processing_ms'),
               'detections_count':len(prediction['detections'])
