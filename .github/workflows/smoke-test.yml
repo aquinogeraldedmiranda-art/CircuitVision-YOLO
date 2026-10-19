@@ -183,7 +183,7 @@ jobs:
               'model':prediction.get('model'),
               'processing_ms':prediction.get('processing_ms'),
               'detections_count':len(prediction['detections'])
-          ))
+          }))
           # Exercise the new single public YOLO11 model contract, both paths.
           def send_auto(live_mode):
               fields=(b'--'+boundary.encode()+
