@@ -20,7 +20,7 @@ from PIL import Image, ImageOps, UnidentifiedImageError
 
 from backend.onnx_inference import ONNXDetector
 from backend.pretrained import ensure_model
-from backend.model_archive import install_uploaded_checkpoint, MODEL_SHA256
+from backend.model_archive import install_uploaded_checkpoint, install_accuracy_round2, MODEL_SHA256
 
 ROOT = Path(__file__).resolve().parent.parent
 MODEL_FOLDER = ROOT / 'models'
@@ -85,7 +85,11 @@ store = ModelStore()
 async def download_public_lab_checkpoint():
     # Render's free hosting keeps only build/runtime files, so retrieve the
     # verified pinned public model when the container starts.
-    installed_student_model = await run_in_threadpool(install_uploaded_checkpoint, ROOT)
+    # Prefer the stronger tested Round-2 detector when its verified ZIP has
+    # been uploaded. Otherwise keep the first student checkpoint operational.
+    installed_student_model = await run_in_threadpool(install_accuracy_round2, ROOT)
+    if not installed_student_model:
+        installed_student_model = await run_in_threadpool(install_uploaded_checkpoint, ROOT)
     if not installed_student_model:
         await run_in_threadpool(ensure_model, ROOT)
 
@@ -110,7 +114,10 @@ def health():
             'model_format': path.suffix.lstrip('.') if path else None,
             'model_origin': ('Yacin Hamdi / EESOB pretrained model (2026)' if path and path.name == 'eesob.onnx' else
                              'CircuitVision student-trained combined dataset YOLO11n' if path else None),
-            'model_version': ('circuitvision-combined-57-yolo11n' if path and path.name == 'best.onnx' else None),
+            'model_version': ('circuitvision-accuracy-round2-57-yolo11n'
+                              if path and path.name == 'best.onnx' and (MODEL_FOLDER / 'CircuitVision_Accuracy_Round2.zip').is_file()
+                              else 'circuitvision-combined-57-yolo11n'
+                              if path and path.name == 'best.onnx' else None),
             'class_count': detected_labels,
             'message': message,
             'available_models': ['custom'] + (['yolo11n'] if ALLOW_GENERIC else []),

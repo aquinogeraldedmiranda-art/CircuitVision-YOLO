@@ -65,8 +65,10 @@ jobs:
                       raise SyntaxError(f'{p} cell {i}: {e}') from e
               print('Validated notebook:',p)
           PY
-      - name: Check pinned training archive installation
-        run: python -m unittest discover -s tests -p test_project_checkpoint.py -v
+      - name: Check pinned training archives and fallback
+        run: |
+          python -m unittest discover -s tests -p test_project_checkpoint.py -v
+          python -m unittest discover -s tests -p test_round2_checkpoint.py -v
       - name: Test real deployed detector
         env:
           BASE_URL: https://circuitvision-yolo-lab.onrender.com
@@ -75,8 +77,11 @@ jobs:
           import json,os,struct,time,urllib.request,zlib
           base=os.environ['BASE_URL']
           student_zip_present = os.path.isfile('models/CircuitVision_Trained_Model.zip')
-          target_model = 'best.onnx' if student_zip_present else 'eesob.onnx'
-          target_classes = 57 if student_zip_present else 48
+          round2_zip_present = os.path.isfile('models/CircuitVision_Accuracy_Round2.zip')
+          target_model = 'best.onnx' if (student_zip_present or round2_zip_present) else 'eesob.onnx'
+          target_classes = 57 if (student_zip_present or round2_zip_present) else 48
+          target_version = ('circuitvision-accuracy-round2-57-yolo11n' if round2_zip_present
+                            else 'circuitvision-combined-57-yolo11n' if student_zip_present else None)
           health=None
           for attempt in range(20):
               try:
@@ -85,7 +90,8 @@ jobs:
                   print('Health:',health,flush=True)
                   if (health.get('custom_model_available') and
                       health.get('model_file')==target_model and
-                      health.get('class_count')==target_classes):
+                      health.get('class_count')==target_classes and
+                      health.get('model_version')==target_version):
                       break
               except Exception as exc:
                   print('Attempt',attempt+1,str(exc),flush=True)
@@ -93,6 +99,7 @@ jobs:
           assert health and health.get('custom_model_available') is True, 'Detector failed to load'
           assert health.get('model_file') == target_model, 'Unexpected model source'
           assert health.get('class_count') == target_classes, 'Unexpected model class count'
+          assert health.get('model_version') == target_version, 'Unexpected deployed model version'
           width,height=160,160
           def chunk(kind,data):
               return struct.pack('!I',len(data))+kind+data+struct.pack('!I',zlib.crc32(kind+data)&0xffffffff)
