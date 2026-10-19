@@ -3,5 +3,7 @@ __pycache__/
 .venv/
 *.pyc
 models/*.pt
-models/*.zip
+# The pinned Colab ZIP is intentionally committed for Render deployment.
+models/best.onnx
+models/classes.json
 .env
