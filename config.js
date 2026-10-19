@@ -3,7 +3,7 @@ window.CIRCUITVISION_CONFIG = {
   mode: 'api',
   baseUrl: '/api',
   requestTimeoutMs: 120000,
-  liveFrameWidth: 416,
-  liveFrameIntervalMs: 650,
+  liveFrameWidth: 640,
+  liveFrameIntervalMs: 80,
   maxFileMB: 10
 };
