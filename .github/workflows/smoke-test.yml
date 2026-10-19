@@ -37,6 +37,20 @@ jobs:
           }
           console.log('Async model readiness enables selector without restarting camera');
           JS
+      - name: Test transient upload connection recovery
+        run: node tests/test_api_transport.mjs
+      - name: Check image comparison UI
+        run: |
+          node --input-type=module - <<'JS'
+          import fs from 'node:fs';
+          const app=fs.readFileSync('app.js','utf8');
+          const css=fs.readFileSync('styles.css','utf8');
+          for(const term of ['async function compareModels()', "model:'round3'", "model:'round3'", 'comparisonPanel()', 'state.requestError', 'data-action="compare-models"']){
+            if(!app.includes(term))throw Error('Comparison feature missing: '+term);
+          }
+          if(!css.includes('.comparison-grid'))throw Error('Mobile comparison styling missing');
+          console.log('Same-image comparison, sequential inference and UI present');
+          JS
       - name: Check browser JavaScript syntax
         run: node --check app.js && node --check api.js && node --check demo.js && node --check motion_tracker.mjs && node --check component_details.mjs
       - name: Confirm browser tracker module served by FastAPI

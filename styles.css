@@ -79,3 +79,13 @@
 .detail-mini:hover,.detail-mini:focus-visible{background:#345e75}
 @media(max-width:900px){.component-guide-grid{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:460px){.value-bands{grid-template-columns:repeat(2,minmax(0,1fr))}.value-band-select .select{font-size:.8rem}.live-object-row{flex-wrap:wrap}.result-row{flex-wrap:wrap;gap:8px}}
+
+/* Same-photo model comparison: two annotated results without squeezing mobile previews. */
+.comparison-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;align-items:start}
+.comparison-grid .surface{min-width:0}
+.comparison-grid .result-stage{min-height:0}
+.comparison-grid .annotated{max-width:100%}
+.comparison-label-list{margin-top:14px;display:grid;gap:7px}
+.comparison-label{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:8px 10px;background:#16293f;border:1px solid #30495e;border-radius:8px;font-size:.78rem}
+.comparison-label b{color:#76e5d9}
+@media(max-width:850px){.comparison-grid{grid-template-columns:minmax(0,1fr)}}
