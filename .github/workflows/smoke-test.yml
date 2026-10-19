@@ -13,20 +13,37 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Check browser JavaScript syntax
-        run: node --check app.js && node --check api.js && node --check demo.js
+        run: node --check app.js && node --check api.js && node --check demo.js && node --check motion_tracker.mjs
+      - name: Test browser motion tracking and delayed YOLO replay
+        run: node tests/test_motion_tracker.mjs
       - name: Check small-part live camera defaults
         run: |
           node --input-type=module - <<'JS'
           import fs from 'node:fs';
           const app=fs.readFileSync('app.js','utf8');
           const cfg=fs.readFileSync('config.js','utf8');
-          for (const test of ['confidence:35','live-zoom','state.settings.zoom','smooth preview','liveFrameUrl']) {
+          for (const test of ['confidence:35','live-zoom','state.settings.zoom','motion tracking','liveFrameUrl']) {
             if (!app.includes(test)) throw new Error('Missing camera quality/sync setting: '+test);
           }
           if (!cfg.includes('liveFrameWidth: 640') || !cfg.includes('liveFrameIntervalMs: 80')) {
             throw new Error('Low-latency camera settings missing');
           }
           console.log('Camera quality, user zoom, threshold and sync controls verified');
+          JS
+      - name: Check motion tracking integrated with live detector
+        run: |
+          node --input-type=module - <<'JS'
+          import fs from 'node:fs';
+          const app=fs.readFileSync('app.js','utf8');
+          for(const phrase of [
+            "from './motion_tracker.mjs'",
+            "captureTrackingFrame(canvas,performance.now())",
+            "liveTracker.ingestDetections(result.detections,trackingAnchor,performance.now())",
+            "state.liveDetections=liveTracker.getDetections()",
+            "liveTracker.reset()",
+            "video.style.transform=state.settings.zoom===2?'scale(2)':'scale(1)'"
+          ])if(!app.includes(phrase))throw Error('Tracker wiring missing: '+phrase);
+          console.log('YOLO result anchors, motion replay and zoom geometry connected');
           JS
       - name: Check portrait camera frame alignment regression
         run: |
