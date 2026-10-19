@@ -2,7 +2,7 @@ name: CircuitVision live model smoke test
 on:
   push:
     branches: [main]
-    paths: ['.github/workflows/smoke-test.yml', 'backend/**', 'models/**', 'requirements.txt']
+    paths: ['.github/workflows/smoke-test.yml', 'backend/**', 'models/**', 'app.js', 'styles.css', 'requirements.txt']
   workflow_dispatch:
 permissions:
   contents: read
@@ -12,6 +12,8 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+      - name: Check browser JavaScript syntax
+        run: node --check app.js && node --check api.js && node --check demo.js
       - name: Check pinned training archive installation
         run: python -m unittest discover -s tests -p test_project_checkpoint.py -v
       - name: Test real deployed detector
