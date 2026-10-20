@@ -1,7 +1,7 @@
 name: CircuitVision live model smoke test
 on:
   push:
-    branches: [main]
+    branches: [main, integration/sam-specialist-existing-website-20261020]
     paths: ['.github/workflows/smoke-test.yml', 'backend/**', 'models/**', 'app.js', 'styles.css', 'notebooks/**', 'requirements.txt']
   pull_request:
     branches: [main]
