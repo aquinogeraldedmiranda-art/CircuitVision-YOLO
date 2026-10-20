@@ -1,46 +1,37 @@
-# Keeping the CircuitVision website accurate as we develop it
+# CircuitVision website and private progress records
 
-CircuitVision is one ongoing student project and **one existing Render website**.
-The About page reads `GET /api/project-status`, which combines two different
-kinds of evidence:
+## Public user experience
 
-1. **Reviewed project progress** in `project_status.json`. This is a versioned
-   record of what we implemented, prepared, tested, and are awaiting results on.
-2. **Actual runtime readiness** from `GET /api/health`. This records the
-   model loaded by the deployed instance, its class count, whether the separate
-   Round 3/Sam checkpoint files are available, and the deployed commit.
+CircuitVision presents a single **YOLOv11** detection system. The public
+interface focuses on Home, Image Detection, Live Camera, Results, Component Guide
+and a concise About page. Do **not** display model rounds, teammate names,
+notebook stages, research plans, commits, experimental availability, or internal
+progress updates to website users.
 
-## After every meaningful project change
+Avoid claims that electrical values are measured, that every part will be
+identified, or that the model has achieved test accuracy not supported by actual
+evaluation. The public interface can truthfully describe visual predictions,
+bounding boxes, labels and confidence scores.
 
-When adding a new trained model, frontend feature, backend change, dataset,
-notebook, or camera improvement:
+## Private engineering records
 
-1. Make the code or notebook change in the **same** GitHub repository.
-2. Update `project_status.json` in **the same pull request**. Adjust relevant
-   milestones and add a concrete entry under `recent_updates`. Set
-   `reviewed_on` to the actual review date, not a future date.
-3. Distinguish **prepared**, **tested locally**, **deployed**, and
-   **validated on real components**. A saved notebook, training plan or
-   imported checkpoint does not prove a training run succeeded.
-4. Preserve original checkpoint/version details and do not describe a
-   visual resistor-value prediction as an electrical measurement.
-5. Run tests. A GitHub Actions PR guard rejects feature changes that neglect
-   the progress file; the status endpoint also has automated tests.
-6. Merge only when tests pass and deploy the **same** Render service.
-   Check the service's live deploy commit and `/api/project-status`.
-7. Update the research paper only with matched methods, real dataset
-   provenance, model versions, held-out testing and actual measurements.
+The `project_status.json` file in this GitHub repository preserves internal
+model provenance and development milestones for the team, including details
+required for the IEEE paper. It is **not served through the public website**.
+The public `/api/project-status` endpoint was removed intentionally.
 
-GitHub and Render can automate **deployment of committed changes**, not the
-truthfulness of unshared Colab training outcomes. If a notebook trains a new
-candidate in a separate Colab session, the developer needs its exported
-weights, training report, and validation results before marking it completed.
+Every substantial change to `app.js`, backend code, models, notebooks or
+camera tracking must include a review of `project_status.json` in the same
+pull request. GitHub Actions enforces this rule.
 
-The frontend intentionally reads live status via the backend instead of
-hardcoding temporary Round 2/Round 3/Sam claims in user-facing copy. This
-allows the About page to reflect the active model without another frontend
-rewrite when the final unified model is validated and activated.
+For each update, document what was prepared, tested, deployed or validated,
+without inflating results. Keep checkpoint versions for safe rollback, use
+independent holdout evaluation for new trained models, and confirm the GitHub
+revision is live on the **existing** Render service.
 
-## Official website
+The user-facing brand is always **CircuitVision · YOLOv11**, even if the team
+keeps several experimental detectors internally while preparing a validated
+jointly trained checkpoint.
 
-https://circuitvision-yolo-lab.onrender.com/#/about
+## Website
+https://circuitvision-yolo-lab.onrender.com/
