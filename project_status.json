@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "project": "CircuitVision",
-  "reviewed_on": "2026-10-20",
-  "current_phase": "Unified-model training and real-world evaluation",
+  "reviewed_on": "2026-10-21",
+  "current_phase": "Unified YOLO11 candidate exported; independent validation pending",
   "milestones": [
     {
       "id": "website",
@@ -31,17 +31,22 @@
     {
       "id": "unified",
       "title": "One jointly trained YOLO11 model",
-      "status": "awaiting_results",
-      "detail": "The Google Colab notebook prepares three training stages (35, 25, 15 epochs) for a proposed 87-class detector. No new model has yet been validated for production."
+      "status": "in_progress",
+      "detail": "A single 87-class YOLO11 candidate checkpoint (.pt and .onnx) and mapping were exported after the 35+25+15 epoch sequence. The notebook selected the refinement-stage best checkpoint and reports test mAP@50 0.6995 and mAP@50–95 0.4750. Deployment is held pending independent inference, rare-class review, duplicate-leakage audit, and non-component false-positive tests; this model is not active on the website."
     },
     {
       "id": "evaluation",
       "title": "Real laboratory evaluation",
       "status": "in_progress",
-      "detail": "Independent tests of detection errors, bounding-box stability, resistor-value visual hints and performance on Android/Windows are still needed."
+      "detail": "The trained candidate needs independent mobile-camera and still-photo tests including unrelated objects, printed backgrounds, moving objects, low light, and rare subclasses. Five classes have no test AP row; four reported zero AP. The existing public detector remains active while validation is pending."
     }
   ],
   "recent_updates": [
+    {
+      "date": "2026-10-21",
+      "title": "Unified candidate training completed; production activation held for validation",
+      "detail": "Received CircuitVision_Unified_YOLO11_Candidate.zip containing best.pt, best.onnx, an 87-class label map, dataset sources and training report. Selected refinement stage. Notebook reports 0.6995 test mAP@50 and 0.4750 mAP@50–95; no independent real-photo tests have yet been run and no new deployment has been made. A separate Colab validation notebook and written audit were prepared."
+    },
     {
       "date": "2026-10-20",
       "title": "Live camera bounding-box stability work",
