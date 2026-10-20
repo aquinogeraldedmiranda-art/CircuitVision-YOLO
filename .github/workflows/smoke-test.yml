@@ -32,6 +32,8 @@ jobs:
           JS
       - name: Test transient upload connection recovery
         run: node tests/test_api_transport.mjs
+      - name: Validate Sam ZIP audit notebook
+        run: python tests/test_sam_data_audit_notebook.py
       - name: Validate unified three-stage training notebook
         run: python tests/test_unified_three_stage_notebook.py
       - name: Check browser JavaScript syntax
