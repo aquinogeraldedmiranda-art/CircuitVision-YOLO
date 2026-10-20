@@ -2,7 +2,7 @@ name: CircuitVision live model smoke test
 on:
   push:
     branches: [main, integration/sam-specialist-existing-website-20261020]
-    paths: ['.github/workflows/smoke-test.yml', 'backend/**', 'models/**', 'app.js', 'styles.css', 'notebooks/**', 'requirements.txt']
+    paths: ['.github/workflows/smoke-test.yml', 'backend/**', 'models/**', 'app.js', 'styles.css', 'notebooks/**', 'requirements.txt', 'project_status.json', 'tests/**']
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -14,6 +14,17 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Require project progress review for feature changes
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          changed="$(git diff --name-only "${{ github.event.pull_request.base.sha }}" HEAD)"
+          echo "Changed files:"; printf '%s\n' "$changed"
+          if printf '%s\n' "$changed" | grep -Eq '^(app\\.js|api\\.js|motion_tracker\\.mjs|component_details\\.mjs|styles\\.css|backend/|models/|notebooks/)'; then
+            printf '%s\n' "$changed" | grep -Fxq 'project_status.json' || { echo 'Update project_status.json alongside feature changes: no silently stale website.' >&2; exit 1; }
+          fi
       - name: Validate single YOLO11 public workflow and safe automatic fusion
         run: |
           python -m unittest discover -s tests -p test_round3_side_by_side.py -v
@@ -36,7 +47,7 @@ jobs:
       - name: Validate specialist API, YOLO merge and camera low-latency behavior
         run: |
           python -m pip install -q -r requirements.txt pytest
-          python -m pytest -q tests/test_specialist_fusion.py tests/test_auto_specialist_integration.py tests/test_still_precision.py
+          python -m pytest -q tests/test_specialist_fusion.py tests/test_auto_specialist_integration.py tests/test_still_precision.py tests/test_project_status.py
       - name: Test transient upload connection recovery
         run: node tests/test_api_transport.mjs
       - name: Validate Sam ZIP audit notebook
