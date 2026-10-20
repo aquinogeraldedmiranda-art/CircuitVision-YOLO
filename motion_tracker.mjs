@@ -14,7 +14,7 @@ function patchShift(prev,next,bbox,radius=7) {
   // Sample spatially separate points and choose a consensus movement.
   const offsets = bw<15||bh<15 ? [[0,0]] :
     [[0,0],[-.22,-.19],[.22,.19]];
-  const half=Math.max(3,Math.min(5,Math.floor(Math.min(bw,bh)*.33)));
+  const half=Math.max(3,Math.min(5,Math.floor(Math.min(bw,bh)*.40)));
   const estimates=[];
   for(const [ox,oy] of offsets) {
     const px=Math.round(cx+ox*bw),py=Math.round(cy+oy*bh);
@@ -25,7 +25,7 @@ function patchShift(prev,next,bbox,radius=7) {
     for(let yy=-half;yy<=half;yy++) for(let xx=-half;xx<=half;xx++){
       const q=a[(py+yy)*w+px+xx];sum+=q;sum2+=q*q;
     }
-    if(sum2/n-(sum/n)**2<65) continue; // no useful image texture
+    if(sum2/n-(sum/n)**2<85) continue; // no useful image texture
     let best=Infinity,bestError=Infinity,dxBest=0,dyBest=0;
     for(let dy=-radius;dy<=radius;dy++)for(let dx=-radius;dx<=radius;dx++){
       let difference=0;
@@ -35,10 +35,10 @@ function patchShift(prev,next,bbox,radius=7) {
           difference+=Math.abs(a[row+xx]-b[shifted+xx+dx]);
       }
       const error=difference/n;
-      const score=error+0.13*(Math.abs(dx)+Math.abs(dy));
+      const score=error+0.11*(Math.abs(dx)+Math.abs(dy));
       if(score<best){best=score;bestError=error;dxBest=dx;dyBest=dy;}
     }
-    if(bestError<=34) estimates.push({dx:dxBest,dy:dyBest,error:bestError});
+    if(bestError<=38) estimates.push({dx:dxBest,dy:dyBest,error:bestError});
   }
   if(!estimates.length) return null;
   // Require nearby displacement agreement if multiple image patches succeed.
