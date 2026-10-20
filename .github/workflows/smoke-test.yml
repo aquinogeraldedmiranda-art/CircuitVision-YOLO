@@ -63,6 +63,8 @@ jobs:
         run: node tests/test_component_details.mjs
       - name: Test browser motion tracking and delayed YOLO replay
         run: node tests/test_motion_tracker.mjs && node tests/test_motion_tracker_quality.mjs
+      - name: Verify factual website copy and mobile screen safeguards
+        run: node tests/test_ui_copy_mobile.mjs
       - name: Check component guide available from detection results
         run: |
           node --input-type=module - <<'JS'
