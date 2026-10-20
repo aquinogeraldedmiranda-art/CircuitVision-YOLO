@@ -89,3 +89,27 @@
 .comparison-label{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:8px 10px;background:#16293f;border:1px solid #30495e;border-radius:8px;font-size:.78rem}
 .comparison-label b{color:#76e5d9}
 @media(max-width:850px){.comparison-grid{grid-template-columns:minmax(0,1fr)}}
+
+
+/* Android layout guard: no sideways page scroll or cropped camera summaries.
+   Keeping the grid children shrinkable fixes the actual min-content overflow
+   rather than concealing wide content behind a clipped panel. */
+html,body,#app{max-width:100%;overflow-x:clip}
+.app-shell,.main-app,.workspace-body,.cam-grid,.cam-grid>*,.surface,.about-intro{min-width:0}
+.cam-grid>div{min-width:0;grid-template-columns:minmax(0,1fr)}
+.side-stat{min-width:0}
+.side-stat strong{overflow-wrap:anywhere;text-align:right}
+.about-intro p{overflow-wrap:break-word}
+.about-intro .badge{max-width:100%;white-space:normal}
+.about-steps .step{display:flex;align-items:flex-start;gap:14px;min-height:0}
+.about-steps .step .num{flex:0 0 42px;width:42px;min-width:42px;height:42px;margin:0}
+.about-steps .step>div{min-width:0}
+@media(max-width:750px){
+  .cam-grid{grid-template-columns:minmax(0,1fr)}
+  .cam-grid .surface{width:100%;min-width:0}
+  .side-stat{flex-wrap:wrap;align-items:center}
+  .side-stat strong{min-width:0}
+  .about-steps .step{padding:17px;align-items:flex-start}
+  .about-steps .step p{line-height:1.55}
+  .about-intro{min-width:0}
+}
