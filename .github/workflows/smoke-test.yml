@@ -35,7 +35,7 @@ jobs:
           const back=fs.readFileSync('backend/main.py','utf8');
           const api=fs.readFileSync('api.js','utf8');
           if(!app.includes("model:'auto'"))throw Error('Unified YOLO11 is not the default');
-          if(!app.includes('CircuitVision YOLO11 · Automatic Detection'))throw Error('No unified YOLO11 user label');
+          if(!app.includes('CircuitVision · YOLOv11'))throw Error('No unified YOLO11 user label');
           if(app.includes('<select id="camera-model"') || app.includes('<select id="model"'))throw Error('Exposed internal model selector');
           if(app.includes('data-action="compare-models"'))throw Error('Exposed obsolete model comparison UI');
           if(!api.includes("form.append('live', String(isLive))"))throw Error('Live camera hint missing');

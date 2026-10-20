@@ -5,7 +5,6 @@ Privacy: does not persist uploaded images or webcam frames. No fake model output
 from __future__ import annotations
 
 import io
-import json
 import importlib.util
 import os
 import threading
@@ -16,7 +15,7 @@ from typing import Annotated
 import numpy as np
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.concurrency import run_in_threadpool
-from fastapi.responses import FileResponse, JSONResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from PIL import Image, ImageOps, UnidentifiedImageError
 
 from backend.onnx_inference import ONNXDetector
@@ -183,36 +182,6 @@ def health():
             'experimental_round3_available': round3_ready,
             'experimental_round3_class_count': 81 if round3_ready else None,
             'live_camera_supported': True}
-
-
-@app.get('/api/project-status')
-def project_status():
-    """Current published release facts plus editorial progress, without guesses.
-
-    Reviewed milestones are committed alongside code. Runtime model availability
-    is read from the currently deployed instance, rather than inferred from
-    the notebook or a GitHub branch.
-    """
-    try:
-        with (ROOT / 'project_status.json').open(encoding='utf-8') as source:
-            progress = json.load(source)
-    except (OSError, json.JSONDecodeError):
-        raise HTTPException(503, 'Project status is temporarily unavailable.')
-    live = health()
-    return JSONResponse({
-        'project': progress,
-        'runtime': {
-            'deployment_commit': live['deployment_commit'],
-            'model_ready': live['custom_model_available'],
-            'model_version': live['model_version'],
-            'model_file': live['model_file'],
-            'class_count': live['class_count'],
-            'round3_ready': live['experimental_round3_available'],
-            'sam_ready': live['sam_specialist_available'],
-            'unified_model_active': live['trained_single_model_active'],
-            'still_image_tiling': live['still_image_tiling']
-        }
-    }, headers={'Cache-Control': 'no-store'})
 
 
 def decode_image(data: bytes) -> Image.Image:

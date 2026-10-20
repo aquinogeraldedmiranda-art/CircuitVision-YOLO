@@ -1,45 +1,21 @@
-"""Project progress is committed alongside deployed website code.
-
-These tests check provenance and API wiring. They do not establish model
-recognition accuracy or imply that an unfinished Colab run is complete.
-"""
+"""Internal development ledger remains versioned in GitHub but is not a public web page."""
 import json
 from pathlib import Path
-
-from backend.main import project_status
+from backend.main import app
 
 ROOT=Path(__file__).resolve().parents[1]
 
+def test_internal_status_record_remains_reviewed():
+    p=json.loads((ROOT/'project_status.json').read_text('utf-8'))
+    assert p['schema_version']==1 and p['project']=='CircuitVision'
+    assert p['reviewed_on'] and p['milestones']
+    assert len({m['id'] for m in p['milestones']})==len(p['milestones'])
+    assert p['recent_updates']
+    assert all(m['status'] in {'deployed','integration_prepared','awaiting_results',
+               'in_progress','locally_tested','validated','blocked'} for m in p['milestones'])
 
-def test_reviewed_project_milestones_are_truthful():
-    progress=json.loads((ROOT/'project_status.json').read_text('utf-8'))
-    assert progress['schema_version']==1
-    assert progress['project']=='CircuitVision'
-    assert progress['reviewed_on']
-    ids={item['id']:item for item in progress['milestones']}
-    assert len(ids)==len(progress['milestones'])
-    assert ids['website']['status']=='deployed'
-    valid_states={'deployed','integration_prepared','awaiting_results','in_progress',
-                  'locally_tested','validated','blocked'}
-    assert ids['sam']['status'] in valid_states
-    assert ids['unified']['status'] in valid_states
-    assert 'not' in progress['limitations'].lower()
-    assert len(progress['recent_updates'])>0
-
-
-def test_project_status_endpoint_is_fresh_and_reports_actual_runtime():
-    response=project_status()
-    assert response.status_code==200
-    assert response.headers['cache-control']=='no-store'
-    data=json.loads(response.body)
-    assert data['project']['project']=='CircuitVision'
-    runtime=data['runtime']
-    assert type(runtime['model_ready']) is bool
-    assert type(runtime['sam_ready']) is bool
-    assert type(runtime['round3_ready']) is bool
-    assert type(runtime['unified_model_active']) is bool
-    assert isinstance(runtime['class_count'],int)
-    # Do not advertise a jointly trained checkpoint while a 57-class
-    # student detector remains the production model.
-    if runtime['model_ready'] and runtime['class_count']==57:
-        assert not runtime['unified_model_active']
+def test_internal_project_history_not_exposed_as_public_api():
+    assert '/api/project-status' not in {r.path for r in app.routes}
+    js=(ROOT/'app.js').read_text('utf-8')
+    assert 'projectProgressSection()' not in js
+    assert 'refreshProjectStatus()' not in js
