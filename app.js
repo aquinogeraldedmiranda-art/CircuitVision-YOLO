@@ -376,7 +376,7 @@ document.addEventListener('change',e=>{const t=e.target;if(t.id==='guide-compone
   }else if(t.id==='file-input'){if(t.files?.[0])handleFile(t.files[0]);t.value='';}else if(t.id==='model'||t.id==='camera-model'){state.settings.model='auto';
     if(state.liveEnabled){stopLiveDetection();render();toast('Model changed. Restart YOLO detection to use it.');}}else if(t.id==='confidence')state.settings.confidence=+t.value;else if(['showBoxes','showLabels','summary'].includes(t.id)){state.settings[t.id]=t.checked;if(state.page==='results')render();if(state.page==='camera')updateLiveOverlay();}else if(t.id==='camera-source'){state.cameraId=t.value;if(state.stream)startCamera();}});
 document.addEventListener('input',e=>{if(e.target.id==='confidence'){state.settings.confidence=Number(e.target.value);$('#confidence-value').textContent=`${e.target.value}%`;}});
-window.addEventListener('hashchange',()=>{const next=readHash();if(state.page==='camera'&&next!=='camera'&&state.stream)stopCamera(false);state.page=next;state.menuOpen=false;render();window.scrollTo({top:0,behavior:'instant'});});
+window.addEventListener('hashchange',()=>{const next=readHash();if(state.page==='camera'&&next!=='camera'&&state.stream)stopCamera(false);state.page=next;state.menuOpen=false;render();window.scrollTo({top:0,left:0,behavior:'instant'});});
 window.addEventListener('beforeunload',()=>{if(state.liveFrameUrl)URL.revokeObjectURL(state.liveFrameUrl);if(state.stream)state.stream.getTracks().forEach(t=>t.stop());if(state.fileURL)URL.revokeObjectURL(state.fileURL);if(state.resultFileURL)URL.revokeObjectURL(state.resultFileURL);});
 render();
 refreshBackendStatus();
