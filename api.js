@@ -8,14 +8,77 @@ const config = () => window.CIRCUITVISION_CONFIG || {};
 function wait(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 function offline() { return typeof navigator !== 'undefined' && navigator.onLine === false; }
 
+// Phone galleries sometimes yield PNG/WEBP/JPEG files that Chrome displays
+// but Pillow rejects because of partial or nonstandard encoding. Decode via
+// the browser first, then send a standard RGB JPEG to the same inference API.
+// The original File remains unchanged so output boxes align with its preview.
+const normalizedUploads = new WeakMap();
+
+async function normalizeUploadForDetection(file) {
+  if (typeof document === 'undefined' || typeof Blob === 'undefined' ||
+      (typeof createImageBitmap !== 'function' &&
+       (typeof Image === 'undefined' || typeof URL === 'undefined'))) {
+    // Test and nonbrowser runtimes preserve the existing transport behavior.
+    return {blob:file,filename:file.name || 'image.jpg'};
+  }
+  if (normalizedUploads.has(file)) return normalizedUploads.get(file);
+  const work = (async () => {
+    let bitmap=null, url=null, visual=null;
+    try {
+      if (typeof createImageBitmap === 'function') {
+        try { bitmap=await createImageBitmap(file,{imageOrientation:'from-image'}); }
+        catch (_) { bitmap=null; }
+      }
+      if (bitmap) visual=bitmap;
+      else {
+        if (typeof Image === 'undefined') throw new Error('Browser image decoder unavailable');
+        url=URL.createObjectURL(file);
+        visual=await new Promise((resolve,reject)=>{
+          const el=new Image();
+          el.onload=()=>resolve(el);
+          el.onerror=()=>reject(new Error('Unable to read this photo'));
+          el.src=url;
+        });
+      }
+      const width=Number(visual.width||visual.naturalWidth);
+      const height=Number(visual.height||visual.naturalHeight);
+      if (!(width>0 && height>0)) throw new Error('Photo dimensions unavailable');
+      // Keep sufficient detail for tiny resistors without sending giant 6250px
+      // mobile images to an inference service limited to 16MP per request.
+      const maxEdge=3000, scale=Math.min(1,maxEdge/Math.max(width,height));
+      const w=Math.max(1,Math.round(width*scale));
+      const h=Math.max(1,Math.round(height*scale));
+      const canvas=document.createElement('canvas');
+      canvas.width=w;canvas.height=h;
+      const ctx=canvas.getContext('2d',{alpha:false});
+      if (!ctx) throw new Error('Image conversion is not supported on this device');
+      ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,w,h);
+      ctx.drawImage(visual,0,0,w,h);
+      const output=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',0.92));
+      if (!output || !output.size) throw new Error('Image conversion returned no data');
+      return {blob:output,filename:(file.name||'component-photo').replace(/\.[^./\\]+$/,'')+'-circuitvision.jpg'};
+    }catch(err) {
+      throw new Error('Could not prepare the photo for detection. Try another image or take a new photo with your camera.');
+    }finally{
+      bitmap?.close?.();
+      if(url)URL.revokeObjectURL(url);
+    }
+  })();
+  normalizedUploads.set(file,work);
+  try { return await work; }catch(err){normalizedUploads.delete(file);throw err;}
+}
+
 export async function detectImage(file, settings, options = {}) {
   if (config().mode !== 'api') throw new Error('API mode is disabled. The Python backend must be enabled.');
   if (!file) throw new Error('Select an image before running detection.');
   const isLive = options.live === true;
   const retries = isLive ? 0 : 1; // Avoid amplifying traffic from live camera.
   const api = String(config().baseUrl || '/api').replace(/\/$/, '');
+  // Live frames are already browser-generated JPEGs, so skip extra encoding.
+  const prepared = isLive ? {blob:file, filename:file.name || 'live-frame.jpg'}
+                          : await normalizeUploadForDetection(file);
   const form = new FormData();
-  form.append('image', file, file.name || 'capture.png');
+  form.append('image', prepared.blob, prepared.filename);
   form.append('confidence', String(settings.confidence / 100));
   form.append('model', settings.model || 'auto');
   form.append('live', String(isLive));

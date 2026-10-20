@@ -194,8 +194,12 @@ def decode_image(data: bytes) -> Image.Image:
             return ImageOps.exif_transpose(raw).convert('RGB')
     except HTTPException:
         raise
-    except (UnidentifiedImageError, ValueError, OSError, Image.DecompressionBombError) as exc:
-        raise HTTPException(415, 'Could not decode the image. Use a JPG, PNG or WEBP file.') from exc
+    except Image.DecompressionBombError as exc:
+        # Phone/gallery source images can be larger than the safe pixel limit,
+        # even when the compressed PNG is only a few hundred kilobytes.
+        raise HTTPException(413, 'This image is too large to analyze. Reduce its dimensions or take a smaller photo.') from exc
+    except (UnidentifiedImageError, ValueError, OSError) as exc:
+        raise HTTPException(415, 'This image could not be read. Try a new photo or re-save it as a JPG or PNG.') from exc
 
 
 def infer(rgb: Image.Image, model: str, conf: float, live: bool = False) -> list[dict]:

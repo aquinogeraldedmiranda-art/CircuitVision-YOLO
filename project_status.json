@@ -44,6 +44,11 @@
   "recent_updates": [
     {
       "date": "2026-10-20",
+      "title": "Repair Android PNG uploads rejected before YOLO inference",
+      "detail": "Investigated an actual HTTP 415 response to an Android upload on the production website. Browser-side image normalization now decodes supported phone photos and sends a bounded RGB JPEG without changing the displayed original. Large source dimensions get an accurate 413 response; tests cover 6250px source images. Detection confidence is unchanged and further testing of actual handset photos remains necessary."
+    },
+    {
+      "date": "2026-10-20",
       "title": "Public CircuitVision UI now uses a unified YOLOv11 identity",
       "detail": "Removed developer training timelines, model-round names and specialist model references from visible pages. Replaced with a clean About view and feature-focused navigation; detailed research/model provenance remains maintained privately in the GitHub project ledger."
     },
