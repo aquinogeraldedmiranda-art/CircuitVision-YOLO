@@ -212,8 +212,8 @@ def infer(rgb: Image.Image, model: str, conf: float, live: bool = False) -> list
                 pass  # Keep trained core available if optional expansion fails.
         # Sam provides visual hints for select resistor values / LED colors on
         # uploads and captured stills. Do not run it on every live video frame.
-        if (MODEL_FOLDER / 'sam_10.onnx').is_file() or
-                (MODEL_FOLDER / 'sam_10.pt').is_file():
+        if ((MODEL_FOLDER / 'sam_10.onnx').is_file() or
+                (MODEL_FOLDER / 'sam_10.pt').is_file()):
             try:
                 specialist = infer(rgb, 'sam', max(.60, conf))
                 combined = refine_with_sam(combined, specialist)
