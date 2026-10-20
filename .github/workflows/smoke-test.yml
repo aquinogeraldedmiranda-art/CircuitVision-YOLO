@@ -22,7 +22,7 @@ jobs:
         run: |
           changed="$(git diff --name-only "${{ github.event.pull_request.base.sha }}" HEAD)"
           echo "Changed files:"; printf '%s\n' "$changed"
-          if printf '%s\n' "$changed" | grep -Eq '^(app\\.js|api\\.js|motion_tracker\\.mjs|component_details\\.mjs|styles\\.css|backend/|models/|notebooks/)'; then
+          if printf '%s\n' "$changed" | grep -Eq '^(app\.js|api\.js|motion_tracker\.mjs|component_details\.mjs|styles\.css|backend/|models/|notebooks/)'; then
             printf '%s\n' "$changed" | grep -Fxq 'project_status.json' || { echo 'Update project_status.json alongside feature changes: no silently stale website.' >&2; exit 1; }
           fi
       - name: Validate single YOLO11 public workflow and safe automatic fusion
