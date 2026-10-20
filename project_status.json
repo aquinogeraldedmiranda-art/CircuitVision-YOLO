@@ -44,6 +44,11 @@
   "recent_updates": [
     {
       "date": "2026-10-20",
+      "title": "Live camera bounding-box stability work",
+      "detail": "The user verified image-upload component identification but reports weaker live-camera accuracy. Camera tracking now preserves stable IDs for matched YOLO detections, dampens only small localization jitter, expires old boxes after 3 seconds, and displays round-trip latency. Live still uses the faster existing model while the unified Colab candidate awaits validation; changes improve presentation/tracking but do not establish classification accuracy improvement on real moving objects."
+    },
+    {
+      "date": "2026-10-20",
       "title": "Repair Android PNG uploads rejected before YOLO inference",
       "detail": "Investigated an actual HTTP 415 response to an Android upload on the production website. Browser-side image normalization now decodes supported phone photos and sends a bounded RGB JPEG without changing the displayed original. Large source dimensions get an accurate 413 response; tests cover 6250px source images. Detection confidence is unchanged and further testing of actual handset photos remains necessary."
     },
