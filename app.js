@@ -205,7 +205,7 @@ function stopCamera(reRender=true){stopLiveDetection();if(state.stream){state.st
 function stopLiveDetection(){
   state.liveEnabled=false;cameraSession+=1;clearTimeout(state.liveTimer);state.liveTimer=null;
   cancelAnimationFrame(trackerAnimationFrame);trackerAnimationFrame=0;trackerLastSample=0;liveTracker.reset();
-  state.liveDetections=[];state.liveStatus='';
+  state.liveBusy=false;state.liveDetections=[];state.liveStatus='';
   if(state.liveFrameUrl){URL.revokeObjectURL(state.liveFrameUrl);state.liveFrameUrl=null;}
   state.liveFrameSize=null;
 }
@@ -316,7 +316,7 @@ async function runLiveLoop(session){
       }
     }
   }catch(e){if(state.liveEnabled&&session===cameraSession){state.liveStatus=`YOLO API: ${e.message}`;updateLiveOverlay();}}
-  finally{state.liveBusy=false;if(state.liveEnabled&&session===cameraSession)state.liveTimer=setTimeout(()=>runLiveLoop(session),Math.max(100,cfg.liveFrameIntervalMs||300))}
+  finally{if(session===cameraSession){state.liveBusy=false;if(state.liveEnabled)state.liveTimer=setTimeout(()=>runLiveLoop(session),Math.max(100,cfg.liveFrameIntervalMs||300));}}
 }
 async function captureCamera(){const video=$('#camera-video');if(!video||!state.stream){toast('Enable the camera before capturing.',true);return}if(!video.videoWidth){toast('Waiting for your camera to be ready. Try again.',true);return}const canvas=document.createElement('canvas');canvas.width=video.videoWidth;canvas.height=video.videoHeight;canvas.getContext('2d').drawImage(video,0,0);canvas.toBlob(blob=>{if(!blob){toast('Could not capture the frame.',true);return}const file=new File([blob],`circuitvision-capture-${Date.now()}.png`,{type:'image/png'});state.capturedCount++;stopCamera(false);handleFile(file);toast('Camera frame captured. Review it in Image Upload.');},'image/png');}
 function downloadBlob(blob,name){const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2500);}
