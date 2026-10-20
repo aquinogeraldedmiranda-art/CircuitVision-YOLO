@@ -2,7 +2,7 @@
   "schema_version": 1,
   "project": "CircuitVision",
   "reviewed_on": "2026-10-21",
-  "current_phase": "Unified YOLO11 candidate exported; independent validation pending",
+  "current_phase": "Candidate ONNX tested on five sample photos; corrective training/evaluation pending",
   "milestones": [
     {
       "id": "website",
@@ -32,16 +32,21 @@
       "id": "unified",
       "title": "One jointly trained YOLO11 model",
       "status": "in_progress",
-      "detail": "A single 87-class YOLO11 candidate checkpoint (.pt and .onnx) and mapping were exported after the 35+25+15 epoch sequence. The notebook selected the refinement-stage best checkpoint and reports test mAP@50 0.6995 and mAP@50–95 0.4750. Deployment is held pending independent inference, rare-class review, duplicate-leakage audit, and non-component false-positive tests; this model is not active on the website."
+      "detail": "Exported 87-class ONNX loads, but five-photo local evaluation at 35% threshold found a missed green LED, battery misidentified as LCD OLED (0.729), broad resistor detections including an unverified 52K subclass, and one correct rejection of an unrelated object. Not cleared for deployment."
     },
     {
       "id": "evaluation",
       "title": "Real laboratory evaluation",
       "status": "in_progress",
-      "detail": "The trained candidate needs independent mobile-camera and still-photo tests including unrelated objects, printed backgrounds, moving objects, low light, and rare subclasses. Five classes have no test AP row; four reported zero AP. The existing public detector remains active while validation is pending."
+      "detail": "The independent Colab ZIP uploaded on 21 Oct contains empty CSV headers. Local ONNX run used five previous photos; independence from training photos is not verified. More annotated novel lab and negative-control photos plus true-held-out class metrics are required."
     }
   ],
   "recent_updates": [
+    {
+      "date": "2026-10-21",
+      "title": "Local 87-class ONNX photo results reveal missed LED and incorrect battery class",
+      "detail": "Five supplied images tested at confidence 0.35: green LED none; resistor_01 predicted Resistor 52K 0.4905 (value unverified); 9V battery predicted LCD OLED 0.7289; resistor_02 predicted Resistor 0.8262; unrelated object none. These are diagnostic examples, not percentage accuracy. New model intentionally not deployed. GitHub issue #12 tracks fixes."
+    },
     {
       "date": "2026-10-21",
       "title": "Unified candidate training completed; production activation held for validation",
