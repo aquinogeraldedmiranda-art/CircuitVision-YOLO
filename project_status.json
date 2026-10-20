@@ -2,13 +2,13 @@
   "schema_version": 1,
   "project": "CircuitVision",
   "reviewed_on": "2026-10-21",
-  "current_phase": "Candidate ONNX tested on five sample photos; corrective training/evaluation pending",
+  "current_phase": "Two selectable YOLOv11 models; optional 87-class model awaiting installation and real-world validation",
   "milestones": [
     {
       "id": "website",
       "title": "CircuitVision website",
       "status": "deployed",
-      "detail": "The original frontend and FastAPI API are deployed on Render. Image upload and webcam detection have passed automated API smoke tests."
+      "detail": "Existing production upload and live camera remain on current YOLOv11 detector by default. New selector gives a second explicitly optional 87-class model when its ONNX checkpoint is installed; no silent fallback."
     },
     {
       "id": "live",
@@ -31,8 +31,8 @@
     {
       "id": "unified",
       "title": "One jointly trained YOLO11 model",
-      "status": "in_progress",
-      "detail": "Exported 87-class ONNX loads, but five-photo local evaluation at 35% threshold found a missed green LED, battery misidentified as LCD OLED (0.729), broad resistor detections including an unverified 52K subclass, and one correct rejection of an unrelated object. Not cleared for deployment."
+      "status": "integration_prepared",
+      "detail": "The 87-class checkpoint was trained and exported, and model selection, backend dispatch and class mapping have been wired. Installation of the actual ONNX file on GitHub/Render is still required. Five sample-photo tests had a missed green LED and misidentified 9V battery, so model (2) is experimental and not declared more accurate."
     },
     {
       "id": "evaluation",
@@ -42,6 +42,11 @@
     }
   ],
   "recent_updates": [
+    {
+      "date": "2026-10-21",
+      "title": "User-selectable YOLOv11 (1) and YOLOv11 (2) website integration",
+      "detail": "Added independent selection to both Upload and Live Camera. Model (1) remains the current trained detector and default. Model (2) uses the 87-class candidate with a separate ONNX file and correct class mapping, and the option remains disabled until installed. No public internal round/team names; classification limitations retained in private development record."
+    },
     {
       "date": "2026-10-21",
       "title": "Local 87-class ONNX photo results reveal missed LED and incorrect battery class",
