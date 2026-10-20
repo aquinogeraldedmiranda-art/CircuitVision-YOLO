@@ -36,7 +36,7 @@ jobs:
       - name: Validate specialist API, YOLO merge and camera low-latency behavior
         run: |
           python -m pip install -q -r requirements.txt pytest
-          python -m pytest -q tests/test_specialist_fusion.py tests/test_auto_specialist_integration.py
+          python -m pytest -q tests/test_specialist_fusion.py tests/test_auto_specialist_integration.py tests/test_still_precision.py
       - name: Test transient upload connection recovery
         run: node tests/test_api_transport.mjs
       - name: Validate Sam ZIP audit notebook
@@ -62,7 +62,7 @@ jobs:
       - name: Test component reference and resistor color value calculator
         run: node tests/test_component_details.mjs
       - name: Test browser motion tracking and delayed YOLO replay
-        run: node tests/test_motion_tracker.mjs
+        run: node tests/test_motion_tracker.mjs && node tests/test_motion_tracker_quality.mjs
       - name: Check component guide available from detection results
         run: |
           node --input-type=module - <<'JS'
