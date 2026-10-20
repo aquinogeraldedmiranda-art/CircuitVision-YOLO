@@ -29,7 +29,7 @@ jobs:
           if(app.includes('data-action="compare-models"'))throw Error('Exposed obsolete model comparison UI');
           if(!api.includes("form.append('live', String(isLive))"))throw Error('Live camera hint missing');
           if(!back.includes("if model == 'auto':") || !back.includes("if live:"))throw Error('Low-latency auto strategy missing');
-    if(!back.includes('refine_with_sam(combined, specialist)'))throw Error('Sam specialist not integrated in the original API');
+          if(!back.includes('refine_with_sam(combined, specialist)'))throw Error('Sam specialist not integrated in the original API');
           if(!back.includes("auto_fuse(primary, extra"))throw Error('Missing conservative new-class still-image expansion');
           console.log('One public YOLO11 model: fast camera, cautious expanded still image detection');
           JS
