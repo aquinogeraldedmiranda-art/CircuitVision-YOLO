@@ -11,7 +11,7 @@ assert(app.includes("runtime.sam_ready?'installed':'not installed'"),
   'Sam checkpoint claim must depend on installed runtime model');
 assert(app.includes("fetch(api+'/project-status'"),
   'About page must load reviewed progress from its live API');
-assert(app.includes('not an electrical measurement'),
+assert(app.includes('not verified electrical measurements'),
   'Do not present a resistor-label estimate as a measurement');
 assert(!app.includes('initial live detector uses a public EESOB electronics model'),
   'Stale EESOB production claim');
