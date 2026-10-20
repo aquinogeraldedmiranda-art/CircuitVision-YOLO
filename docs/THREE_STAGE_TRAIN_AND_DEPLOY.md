@@ -47,24 +47,35 @@ splits. Real phone/lab validation should include motion, clutter, varied
 backgrounds, LEDs, resistors, and unseen values. A visual resistor-value class
 is not an electrical measurement; confirm with markings or a multimeter.
 
-## Safe replacement in the EXISTING website
+## Two selectable detectors in the EXISTING website
 
-Do not overwrite `best.onnx` or any old model archive. After reviewing the
-new model, copy the new ONNX and its JSON mapping to the SAME GitHub repo as:
+The user explicitly requested both models rather than replacing the current
+working website checkpoint. The public labels are **YOLOv11 (1)** and
+**YOLOv11 (2)**.
 
-- `models/unified_87.onnx`
-- `models/unified_87_classes.json`
+- YOLOv11 (1): current trained detector, the default for Upload and Camera.
+  Its existing model files and inference behavior stay intact.
+- YOLOv11 (2): the new 87-class candidate, loaded separately *only if*
+  `models/unified_87.onnx` is installed alongside
+  `models/unified_87_classes.json`. The model selector is disabled until
+  those files are present. A missing model never silently substitutes (1).
+- The selected option is shared across Upload and Live Camera in the current
+  browser session. Switching models stops the active live detector and
+  requires restarting detection, preventing mismatched tracking boxes.
+- The health endpoint exposes `yolov11_1_available`,
+  `yolov11_2_available` and `yolov11_2_class_count`.
 
-Check that the ONNX input is [1,3,640,640], class count is 87, its names and
-mapping agree, its image results and per-class AP are acceptable, and memory
-use remains safe. When proven, configure the existing Render service with
-`CV_ENABLE_UNIFIED_87=1`. No new site or Render instance is required. A quick
-rollback sets that flag to `0` to restore Round 2 + optional refinements.
+**Installing (2):** upload `models/unified_87.onnx` to the existing GitHub
+`main` branch using the original Colab ZIP's `best.onnx` renamed to that
+filename. The exact 87-class map is already tracked in this repository.
+Render's existing automatic deployment will then incorporate the file.
+Do not overwrite `best.onnx`, set `CV_ENABLE_UNIFIED_87`, or create another
+Render service.
 
-The published website supports `GET /api/health` to see
-`trained_single_model_active`, `deployment_commit`, class count, and
-`sam_specialist_available`. It continues to support Upload and Live Camera
-with one user-facing **CircuitVision YOLO11** option.
+The candidate was successfully tested on five photos but missed a green LED
+and confused a 9V battery with an LCD. It is therefore **experimental**.
+Do not describe it as more accurate than the working model. Keep model (1)
+as the default. These engineering notes are not public website content.
 
 ## Runtime motion/detection safeguards
 

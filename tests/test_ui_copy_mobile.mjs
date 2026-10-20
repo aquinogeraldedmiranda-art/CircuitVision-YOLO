@@ -10,7 +10,8 @@ assert(!/round\s*[23]|sam|milestone|training|colab|research|deployment|model pro
   'No internal training, versions or progress should be visible on About');
 assert(!app.includes('projectProgressSection()'), 'Internal development dashboard must not render publicly');
 assert(!app.includes('refreshProjectStatus()'), 'No background progress log on the public UI');
-assert(app.includes("function detectorChoices(){return '<span class=\"badge green\">CircuitVision · YOLOv11"), 'One public model label');
+assert(app.includes("function detectorChoices(id='model')"), 'Working selector for two YOLOv11 choices');
+assert(app.includes("state.settings.model=next"), 'Selector must persist across pages');
 assert(app.includes("window.scrollTo({top:0,left:0"), 'Phone navigation should reset scroll');
 assert(css.includes('.about-clean{'), 'Minimal responsive About page layout missing');
 assert(css.includes('.about-feature-grid{'), 'About feature cards missing');
