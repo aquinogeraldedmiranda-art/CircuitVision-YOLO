@@ -47,7 +47,7 @@ jobs:
       - name: Validate specialist API, YOLO merge and camera low-latency behavior
         run: |
           python -m pip install -q -r requirements.txt pytest
-          python -m pytest -q tests/test_specialist_fusion.py tests/test_auto_specialist_integration.py tests/test_still_precision.py tests/test_project_status.py tests/test_no_stale_website.py
+          python -m pytest -q tests/test_specialist_fusion.py tests/test_auto_specialist_integration.py tests/test_still_precision.py tests/test_project_status.py tests/test_no_stale_website.py tests/test_image_decode.py
       - name: Test transient upload connection recovery and mobile image conversion
         run: node tests/test_api_transport.mjs && node tests/test_mobile_image_conversion.mjs
       - name: Validate Sam ZIP audit notebook
