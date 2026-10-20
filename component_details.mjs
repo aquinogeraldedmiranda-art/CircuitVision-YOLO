@@ -29,7 +29,7 @@ export function decodeResistorBands(colors){
     range:[ohms*(1-tolerance/100),ohms*(1+tolerance/100)]};
 }
 const GUIDE={
- resistor:{name:'Resistor',role:'Limits current and sets voltages in electronic circuits.',learn:'Resistance is measured in ohms (Ω). Axial resistors use color bands; SMD resistors may have printed numbers.',value:'Enter 4 or 5 bands below, or confirm with a multimeter. YOLO cannot read the value yet.'},
+ resistor:{name:'Resistor',role:'Limits current and sets voltages in electronic circuits.',learn:'Resistance is measured in ohms (Ω). Axial resistors use color bands; SMD resistors may have printed numbers.',value:'Use the 4/5-band calculator or confirm with a multimeter. When the optional Sam specialist model is installed, YOLO may suggest 2K, 10K or 52K visually; this is not an electrical measurement and must be verified.'},
  led:{name:'LED',role:'Emits light when forward biased with the correct current.',learn:'Polarity matters. Use a current-limiting resistor; typical forward voltage depends on color and part.',value:'LED voltage and current rating cannot be identified reliably from appearance alone.'},
  diode:{name:'Diode',role:'Allows current mainly in one direction; used for rectification and protection.',learn:'Check the cathode stripe and datasheet. Use diode-test mode to measure forward drop.',value:'Exact type, voltage and current ratings require markings or a part number.'},
  capacitor:{name:'Capacitor',role:'Stores electric charge; used for filtering, timing and decoupling.',learn:'Capacitance is measured in farads (often µF, nF or pF); electrolytic types can be polarized.',value:'Read printed capacitance and voltage ratings or measure with an LCR meter.'},
