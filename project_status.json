@@ -44,6 +44,11 @@
   "recent_updates": [
     {
       "date": "2026-10-20",
+      "title": "Fixed outdated text persisting in mobile browser cache",
+      "detail": "The website now serves no-cache HTML, scripts and styles, with release-versioned asset URLs, so Android Chrome will request the latest project About page after reopening or refreshing."
+    },
+    {
+      "date": "2026-10-20",
       "title": "Progress-update safeguards tested",
       "detail": "GitHub checks require feature changes to review public status; milestones can advance once actual model evidence becomes available."
     },

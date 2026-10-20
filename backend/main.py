@@ -16,7 +16,7 @@ from typing import Annotated
 import numpy as np
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.concurrency import run_in_threadpool
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, HTMLResponse
 from PIL import Image, ImageOps, UnidentifiedImageError
 
 from backend.onnx_inference import ONNXDetector
@@ -314,21 +314,42 @@ async def detect(
             'annotated_image_url': None}
 
 
+NO_STORE_HEADERS = {'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+                    'Pragma': 'no-cache', 'Expires': '0'}
+
+
+def frontend_revision() -> str:
+    # Render provides this commit at build/deploy time. Local copies use
+    # the app file's timestamp so static assets change after each edit.
+    commit = os.getenv('RENDER_GIT_COMMIT', '')
+    if len(commit) >= 12 and all(c in '0123456789abcdef' for c in commit.lower()):
+        return commit[:12].lower()
+    return str((ROOT / 'app.js').stat().st_mtime_ns)
+
+
 FRONTEND_FILES = {'index.html', 'app.js', 'api.js', 'demo.js', 'config.js', 'styles.css', 'motion_tracker.mjs', 'component_details.mjs', 'robots.txt', 'sitemap.xml'}
 
 
 @app.get('/')
 def home():
-    return FileResponse(ROOT / 'index.html', media_type='text/html')
+    # HTML and bundled modules must not be reused across model/UI releases.
+    # Versioned asset URLs also bypass older Chrome heuristic caches.
+    html = (ROOT / 'index.html').read_text(encoding='utf-8')
+    html = html.replace('__CV_ASSET_VERSION__', frontend_revision())
+    return HTMLResponse(html, headers=NO_STORE_HEADERS)
 
 
 @app.get('/assets/favicon.svg')
 def favicon():
-    return FileResponse(ROOT / 'assets' / 'favicon.svg', media_type='image/svg+xml')
+    return FileResponse(ROOT / 'assets' / 'favicon.svg', media_type='image/svg+xml', headers=NO_STORE_HEADERS)
 
 
 @app.get('/{filename}')
 def frontend_asset(filename: str):
     if filename not in FRONTEND_FILES:
         raise HTTPException(404, 'Not found')
-    return FileResponse(ROOT / filename, media_type='text/javascript' if filename.endswith('.mjs') else None)
+    if filename == 'index.html':
+        return home()
+    return FileResponse(ROOT / filename,
+                        media_type='text/javascript' if filename.endswith('.mjs') else None,
+                        headers=NO_STORE_HEADERS)
