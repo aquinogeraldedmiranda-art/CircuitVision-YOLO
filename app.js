@@ -8,6 +8,24 @@ const escapeHTML = text => String(text ?? '').replace(/[&<>"']/g, c => ({'&':'&a
 const cfg = window.CIRCUITVISION_CONFIG || {};
 const pages = new Set(['home','upload','camera','results','guide','about']);
 const modelStatus = {online:false,customReady:false,round3Ready:false,samReady:false,message:'Checking YOLO backend…'};
+let publishedProgress=null;
+let publishedProgressError='';
+async function refreshProjectStatus(){
+  try{
+    const api=String((window.CIRCUITVISION_CONFIG||{}).baseUrl||'/api').replace(/\/$/,'');
+    const reply=await fetch(api+'/project-status',{cache:'no-store',signal:AbortSignal.timeout(8000)});
+    if(!reply.ok)throw new Error('Project status API is unavailable');
+    const snapshot=await reply.json();
+    if(!Array.isArray(snapshot?.project?.milestones)||!snapshot?.runtime)
+      throw new Error('Project status response is incomplete');
+    publishedProgress=snapshot;
+    publishedProgressError='';
+  }catch(_){
+    publishedProgressError='Project progress could not be loaded. Try refreshing this page.';
+  }
+  if(state.page==='about')render();
+}
+
 let cameraSession = 0;
 let trackerAnimationFrame=0;
 let trackerLastSample=0;
@@ -150,7 +168,40 @@ function componentGuide(){
     '<section class="surface" style="margin-top:18px"><h3>Possible future value reader</h3><p class="small">Automatic resistor-band reading would need carefully annotated close-up images and further testing. Our calculator uses color bands entered by the user; YOLO does not measure resistance.</p></section>');
 }
 
-function about(){return appShell('OUR PROJECT','About CircuitVision','How we built the detector and what it can do today.',`<section class="about-intro"><span class="badge">CIRCUITVISION · STUDENT PROJECT</span><h2>Recognizing electronics in the lab</h2><p>We built CircuitVision to help identify common electronic components using a camera or an uploaded photograph. Our group designed the website, connected a Python FastAPI backend, and trained YOLO11 object-detection models in Google Colab. The live detector currently uses our Round 2 YOLO11n model, which has 57 class labels. Uploaded photos can also receive additional, explicitly marked Round 3 predictions. We are working toward one retrained model covering the combined component classes.</p><p>These are predictions from photographs, not verified component measurements. Confidence scores do not prove the system is accurate, and small parts, lighting and movement can still affect the results.</p></section><div class="steps-title eyebrow">HOW WE BUILT IT</div><div class="steps about-steps"><div class="step"><span class="num">01</span><div><b>Prepare the datasets</b><p>We sourced annotated electronics datasets, checked class mappings, and reviewed Sam's detailed component labels for our next training run.</p></div></div><div class="step"><span class="num">02</span><div><b>Train and evaluate YOLO</b><p>We trained Round 2 and Round 3 in Colab. We are preparing three stages of unified training and will evaluate the new model before replacing the current one.</p></div></div><div class="step"><span class="num">03</span><div><b>Connect the website</b><p>We connected camera and upload detection to FastAPI and deployed CircuitVision using GitHub and Render. Testing on real laboratory scenes is ongoing.</p></div></div></div><div class="info-line" style="margin-top:25px">${I('info')} Current system: Round 2 YOLO11n runs live-camera detection; Round 3 can contribute additional categories on still photos. Sam's specialist model is not yet active in production. A predicted resistor value would be a visual estimate, not an electrical measurement.</div>`);}
+function projectProgressSection(){
+  if(!publishedProgress){
+    return '<section class="surface project-progress" aria-label="Development progress"><h3>Current development status</h3><p class="small">'+escapeHTML(publishedProgressError||'Checking this deployment and the latest reviewed project milestones…')+'</p></section>';
+  }
+  const {project,runtime}=publishedProgress;
+  const statusLabels={deployed:'Implemented and deployed',integration_prepared:'Integration prepared',awaiting_results:'Awaiting training results',in_progress:'Testing in progress'};
+  const milestones=project.milestones.map(m=>
+    '<div class="progress-item"><div class="progress-item-heading"><strong>'+escapeHTML(m.title)+'</strong><span class="progress-state">'+escapeHTML(statusLabels[m.status]||'Under review')+'</span></div><p>'+escapeHTML(m.detail)+'</p></div>').join('');
+  const modelName=!runtime.model_ready?'Trained detector is not currently available':
+    runtime.unified_model_active?'Unified YOLO11 model active':
+    runtime.model_file==='eesob.onnx'?'Public EESOB fallback model active':
+    runtime.class_count===57?'Round 2 YOLO11n model active':
+    'Trained YOLO detection model active';
+  const detail=runtime.model_ready?
+    ' · '+escapeHTML(String(runtime.class_count))+' class labels loaded':'';
+  const extras='Round 3 expansion: '+(runtime.round3_ready?'installed':'not installed')+
+    ' · Sam specialist: '+(runtime.sam_ready?'installed':'not installed')+
+    ' · One jointly trained model: '+(runtime.unified_model_active?'active':'not active');
+  const release=String(runtime.deployment_commit||'');
+  const releaseLabel=/^[a-f0-9]{12}$/.test(release)?' · Render revision '+escapeHTML(release):'';
+  const updates=(project.recent_updates||[]).slice(0,3).map(u=>
+    '<li><strong>'+escapeHTML(u.title)+'</strong> <span class="progress-date">'+escapeHTML(u.date)+'</span><p>'+escapeHTML(u.detail)+'</p></li>').join('');
+  return '<section class="surface project-progress" aria-label="Development progress"><div class="progress-title"><div><h3>Where CircuitVision stands today</h3><p class="small">Last reviewed '+escapeHTML(project.reviewed_on)+' · '+escapeHTML(project.current_phase)+'</p></div></div>'+
+    '<div class="runtime-summary"><strong>'+escapeHTML(modelName)+detail+'</strong><p>'+escapeHTML(extras)+releaseLabel+'</p></div>'+
+    '<div class="progress-items">'+milestones+'</div>'+
+    '<h3 style="margin-top:23px">Recent development work</h3><ul class="progress-updates">'+updates+'</ul>'+
+    '<p class="file-note">'+escapeHTML(project.limitations)+'</p></section>';
+}
+function about(){return appShell('OUR PROJECT','About CircuitVision','What we have built, what is deployed, and what we still need to test.',
+  '<section class="about-intro"><span class="badge">CIRCUITVISION · STUDENT PROJECT</span><h2>Recognizing electronics in the lab</h2>'+
+  '<p>We developed CircuitVision to explore how YOLO object detection can help identify common electronics components. Our team built the website, trained component detectors using Google Colab, and connected image uploads and a webcam to a Python FastAPI backend hosted on Render.</p>'+
+  '<p>Our research focuses on identification and bounding-box localization. The website reports model predictions, not verified electrical measurements. We are continuing to evaluate missed detections, confusing labels, small components and camera motion.</p></section>'+
+  projectProgressSection());
+}
 function processing(){return `<div class="processing-wrap" role="status" aria-live="polite"><div class="processing-box"><span class="badge">${I('bolt')} ${backendConfigured()?'ANALYZING IMAGE':'RUNNING SAMPLE DEMO'}</span><h2 style="margin-top:20px">${backendConfigured()?'Detecting components...':'Preparing demo results...'}</h2><p>${backendConfigured()?'Sending the image to your YOLO detection API.':'Loading the sample electronics detection preview.'}</p><div class="progress"><span></span></div><div class="small">${backendConfigured()?'Waiting for a model response':'Illustrative demonstration • no model inference'}</div></div></div>`;}
 function render(){document.title=`${state.page==='home'?'YOLO: CircuitVision | Electronics Laboratory Object Detection':state.page[0].toUpperCase()+state.page.slice(1)+' | YOLO: CircuitVision'}`;app.innerHTML=state.page==='home'?landing():state.page==='upload'?upload():state.page==='camera'?camera():state.page==='results'?results():state.page==='guide'?componentGuide():about();if(state.processing)app.insertAdjacentHTML('beforeend',processing());if(state.stream){const video=$('#camera-video');if(video){video.srcObject=state.stream;video.style.transform=state.settings.zoom===2?'scale(2)':'scale(1)';video.addEventListener('loadedmetadata',updateLiveOverlay,{once:true});updateLiveOverlay();}}const drag=$('#dropzone');if(drag){drag.addEventListener('dragover',e=>{e.preventDefault();drag.classList.add('drag-over')});drag.addEventListener('dragleave',()=>drag.classList.remove('drag-over'));drag.addEventListener('drop',e=>{e.preventDefault();drag.classList.remove('drag-over');if(e.dataTransfer.files.length)handleFile(e.dataTransfer.files[0]);});drag.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();$('#file-input')?.click();}})}}
 async function handleFile(file){const accepted=['image/jpeg','image/png','image/webp'];if(!file||!accepted.includes(file.type)){toast('Choose a JPG, PNG or WEBP image.',true);return}if(file.size>(cfg.maxFileMB||10)*1024*1024){toast(`Image must be under ${cfg.maxFileMB||10} MB.`,true);return}if(state.fileURL)URL.revokeObjectURL(state.fileURL);state.file=file;state.fileURL=URL.createObjectURL(file);state.fileSource='upload';state.requestError='';state.compareResults=null;if(state.page!=='upload')route('upload');else render();toast('Image selected successfully.');}
@@ -376,7 +427,8 @@ document.addEventListener('change',e=>{const t=e.target;if(t.id==='guide-compone
   }else if(t.id==='file-input'){if(t.files?.[0])handleFile(t.files[0]);t.value='';}else if(t.id==='model'||t.id==='camera-model'){state.settings.model='auto';
     if(state.liveEnabled){stopLiveDetection();render();toast('Model changed. Restart YOLO detection to use it.');}}else if(t.id==='confidence')state.settings.confidence=+t.value;else if(['showBoxes','showLabels','summary'].includes(t.id)){state.settings[t.id]=t.checked;if(state.page==='results')render();if(state.page==='camera')updateLiveOverlay();}else if(t.id==='camera-source'){state.cameraId=t.value;if(state.stream)startCamera();}});
 document.addEventListener('input',e=>{if(e.target.id==='confidence'){state.settings.confidence=Number(e.target.value);$('#confidence-value').textContent=`${e.target.value}%`;}});
-window.addEventListener('hashchange',()=>{const next=readHash();if(state.page==='camera'&&next!=='camera'&&state.stream)stopCamera(false);state.page=next;state.menuOpen=false;render();window.scrollTo({top:0,left:0,behavior:'instant'});});
+window.addEventListener('hashchange',()=>{const next=readHash();if(state.page==='camera'&&next!=='camera'&&state.stream)stopCamera(false);state.page=next;state.menuOpen=false;render();if(next==='about')refreshProjectStatus();window.scrollTo({top:0,left:0,behavior:'instant'});});
 window.addEventListener('beforeunload',()=>{if(state.liveFrameUrl)URL.revokeObjectURL(state.liveFrameUrl);if(state.stream)state.stream.getTracks().forEach(t=>t.stop());if(state.fileURL)URL.revokeObjectURL(state.fileURL);if(state.resultFileURL)URL.revokeObjectURL(state.resultFileURL);});
 render();
 refreshBackendStatus();
+if(state.page==='about')refreshProjectStatus();

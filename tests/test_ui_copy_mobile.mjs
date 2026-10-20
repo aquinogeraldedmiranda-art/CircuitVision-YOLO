@@ -5,11 +5,13 @@ const app = fs.readFileSync('app.js','utf8');
 const styles = fs.readFileSync('styles.css','utf8');
 const readme = fs.readFileSync('README.md','utf8');
 
-assert(app.includes('Round 2 YOLO11n runs live-camera detection'),
-  'About page must identify current trained student checkpoint');
-assert(app.includes('Sam\'s specialist model is not yet active in production'),
-  'Do not claim unpublished Sam model is active');
-assert(app.includes('not an electrical measurement'),
+assert(app.includes("runtime.class_count===57?'Round 2 YOLO11n model active'"),
+  'About page must identify production model using runtime information');
+assert(app.includes("runtime.sam_ready?'installed':'not installed'"),
+  'Sam checkpoint claim must depend on installed runtime model');
+assert(app.includes("fetch(api+'/project-status'"),
+  'About page must load reviewed progress from its live API');
+assert(app.includes('not verified electrical measurements'),
   'Do not present a resistor-label estimate as a measurement');
 assert(!app.includes('initial live detector uses a public EESOB electronics model'),
   'Stale EESOB production claim');
@@ -27,6 +29,8 @@ assert(styles.includes('.cam-grid>div{min-width:0;grid-template-columns:minmax(0
   'Mobile camera summary grid must be shrinkable');
 assert(styles.includes('html,body,#app{max-width:100%;overflow-x:clip}'),
   'Mobile page should not scroll horizontally');
+assert(styles.includes('.progress-items{display:grid'),
+  'Responsive progress layout missing');
 assert(readme.includes('Production:') || readme.includes('**Production:**'),
   'Project README should link to live site');
 console.log('Verified factual About copy, model readiness and mobile overflow CSS safeguards');

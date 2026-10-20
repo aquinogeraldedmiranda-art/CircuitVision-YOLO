@@ -38,6 +38,17 @@ The public interface presents one CircuitVision YOLO11 detector with Upload
 and Live Camera experiences. Both call the same FastAPI endpoint. The Render
 CPU deployment uses ONNX Runtime, not the Ultralytics Python prediction loop.
 
+## Keeping our public website current
+
+The About page at [CircuitVision project progress](https://circuitvision-yolo-lab.onrender.com/#/about)
+shows reviewed milestones from `project_status.json` alongside the live
+model/version information returned by the Render server. Future functional
+updates must revise that file in the same pull request; the GitHub workflow
+checks this before merging. Colab results are **not** marked complete until
+the actual exported model and evaluation report are reviewed.
+
+See [the project-status maintenance guide](docs/KEEP_WEBSITE_IN_SYNC.md).
+
 ## Training and deployment
 
 - [Current training and in-place deployment guide](docs/THREE_STAGE_TRAIN_AND_DEPLOY.md)
