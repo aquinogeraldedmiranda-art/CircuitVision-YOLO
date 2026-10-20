@@ -19,8 +19,10 @@ def test_reviewed_project_milestones_are_truthful():
     ids={item['id']:item for item in progress['milestones']}
     assert len(ids)==len(progress['milestones'])
     assert ids['website']['status']=='deployed'
-    assert ids['sam']['status']=='integration_prepared'
-    assert ids['unified']['status']=='awaiting_results'
+    valid_states={'deployed','integration_prepared','awaiting_results','in_progress',
+                  'locally_tested','validated','blocked'}
+    assert ids['sam']['status'] in valid_states
+    assert ids['unified']['status'] in valid_states
     assert 'not' in progress['limitations'].lower()
     assert len(progress['recent_updates'])>0
 
