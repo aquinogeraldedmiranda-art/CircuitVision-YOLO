@@ -37,7 +37,7 @@ app = FastAPI(title='CircuitVision YOLO API', version='3.0.0', docs_url='/api/do
 
 def custom_weight_path() -> Path | None:
     paths = ([Path(CUSTOM_MODEL).expanduser()] if CUSTOM_MODEL
-             else ([MODEL_FOLDER / 'unified_87.onnx'] if os.getenv('CV_ENABLE_UNIFIED_87', '0') == '1' else []) + [MODEL_FOLDER / 'best.onnx', MODEL_FOLDER / 'my_model.onnx',
+             else [MODEL_FOLDER / 'best.onnx', MODEL_FOLDER / 'my_model.onnx',
                    MODEL_FOLDER / 'best.pt', MODEL_FOLDER / 'my_model.pt',
                    MODEL_FOLDER / 'eesob.onnx'])
     return next((p.resolve() for p in paths if p.is_file()), None)
