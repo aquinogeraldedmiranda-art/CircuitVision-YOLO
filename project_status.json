@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "project": "CircuitVision",
+  "reviewed_on": "2026-10-20",
+  "current_phase": "Unified-model training and real-world evaluation",
+  "milestones": [
+    {
+      "id": "website",
+      "title": "CircuitVision website",
+      "status": "deployed",
+      "detail": "The original frontend and FastAPI API are deployed on Render. Image upload and webcam detection have passed automated API smoke tests."
+    },
+    {
+      "id": "live",
+      "title": "Live YOLO detection",
+      "status": "deployed",
+      "detail": "The production live camera uses the team's Round 2 YOLO11n detector and browser motion tracking. Android camera quality and moving-object accuracy still require hands-on validation."
+    },
+    {
+      "id": "photos",
+      "title": "Photo detection expansion",
+      "status": "deployed",
+      "detail": "Still images use the team-trained core model, with optional additional Round 3 predictions. Small-object tiling is enabled for large photographs."
+    },
+    {
+      "id": "sam",
+      "title": "Sam's detailed component recognition",
+      "status": "integration_prepared",
+      "detail": "Ten specialist classes and fusion logic are prepared; the verified specialist ONNX checkpoint has not yet been installed on the hosted service."
+    },
+    {
+      "id": "unified",
+      "title": "One jointly trained YOLO11 model",
+      "status": "awaiting_results",
+      "detail": "The Google Colab notebook prepares three training stages (35, 25, 15 epochs) for a proposed 87-class detector. No new model has yet been validated for production."
+    },
+    {
+      "id": "evaluation",
+      "title": "Real laboratory evaluation",
+      "status": "in_progress",
+      "detail": "Independent tests of detection errors, bounding-box stability, resistor-value visual hints and performance on Android/Windows are still needed."
+    }
+  ],
+  "recent_updates": [
+    {
+      "date": "2026-10-20",
+      "title": "Project progress is now shown on the About page",
+      "detail": "A versioned project status and live deployment/model details distinguish completed work from testing and planned work."
+    },
+    {
+      "date": "2026-10-20",
+      "title": "Website wording and mobile layout reviewed",
+      "detail": "Removed outdated EESOB-era claims and corrected oversized workflow panels and horizontal overflow."
+    },
+    {
+      "date": "2026-10-20",
+      "title": "Detection workflow updated",
+      "detail": "Added still-image small-object tiling, safe optional specialist integration, and browser-tracking safeguards without claiming new measured accuracy."
+    }
+  ],
+  "limitations": "YOLO labels, confidence scores and bounding boxes are predictions, not proof of per-class accuracy or electrical measurements. Exact resistor resistance must be checked from markings or with suitable measurement equipment."
+}
