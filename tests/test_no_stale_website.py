@@ -2,8 +2,6 @@
 
 These HTTP response tests prevent accidental reuse of an outdated frontend.
 """
-from pathlib import Path
-
 from fastapi.responses import FileResponse, HTMLResponse
 from backend import main
 
@@ -29,6 +27,6 @@ def test_frontend_files_are_no_store():
 def test_no_stale_claims_in_website_copy():
     source=(main.ROOT/'app.js').read_text(encoding='utf-8')
     assert 'The initial live detector uses a public EESOB' not in source
-    assert 'team\\\'s own trained YOLO11s model after validation' not in source
+    assert "team's own trained YOLO11s model after validation" not in source
     assert 'The initial live detector' not in source
     assert 'projectProgressSection()' in source
