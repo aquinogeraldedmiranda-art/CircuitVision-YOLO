@@ -51,6 +51,7 @@ class ModelStore:
         self.generic: object | None = None
         self.round3: tuple | None = None
         self.specialist: tuple | None = None
+        self.unified: tuple | None = None
 
     def get(self, kind: str):
         with self.lock:
@@ -64,6 +65,22 @@ class ModelStore:
                     except Exception as exc:
                         raise HTTPException(503, 'Generic model unavailable; install Ultralytics for local testing.') from exc
                 return self.generic, 'pt'
+            if kind == 'unified':
+                # Kept strictly separate from the working website checkpoint.
+                # A missing or invalid candidate never falls back silently.
+                unified_path = MODEL_FOLDER / 'unified_87.onnx'
+                unified_map = MODEL_FOLDER / 'unified_87_classes.json'
+                if not unified_path.is_file() or not unified_map.is_file():
+                    raise HTTPException(503, 'YOLOv11 (2) is not installed yet. Choose YOLOv11 (1) for now.')
+                if self.unified is None:
+                    try:
+                        instance2 = ONNXDetector(unified_path, unified_map)
+                        if len(instance2.names) != 87 or set(instance2.names) != set(range(87)):
+                            raise ValueError('YOLOv11 (2) class mapping must contain all 87 labels.')
+                        self.unified = (instance2, 'onnx')
+                    except Exception as exc:
+                        raise HTTPException(503, f'YOLOv11 (2) could not load: {exc}') from exc
+                return self.unified
             if kind == 'sam':
                 path_sam = MODEL_FOLDER / 'sam_10.onnx'
                 pt_sam = MODEL_FOLDER / 'sam_10.pt'
@@ -154,6 +171,9 @@ def health():
         except HTTPException as exc:
             message = f'Model loading failed: {exc.detail}'
     round3_ready = (MODEL_FOLDER / 'round3.onnx').is_file() and (MODEL_FOLDER / 'round3_classes.json').is_file()
+    # Do not expose (2) as selectable until its actual ONNX is installed.
+    unified_candidate_installed = ((MODEL_FOLDER / 'unified_87.onnx').is_file() and
+                                   (MODEL_FOLDER / 'unified_87_classes.json').is_file())
     specialist_ready = (MODEL_FOLDER / 'sam_10.onnx').is_file() or (
         (MODEL_FOLDER / 'sam_10.pt').is_file() and importlib.util.find_spec('ultralytics') is not None)
     specialist_ready = specialist_ready and (MODEL_FOLDER / 'sam_classes.json').is_file()
@@ -162,6 +182,9 @@ def health():
             'still_image_tiling': os.getenv('CV_STILL_TILES', '1') == '1',
             'trained_single_model_active': bool(path and path.name == 'unified_87.onnx'),
             'unified_yolo11_available': can_run,
+            'yolov11_1_available': can_run,
+            'yolov11_2_available': unified_candidate_installed,
+            'yolov11_2_class_count': 87 if unified_candidate_installed else None,
             'unified_video_strategy': ('single_trained_unified_checkpoint' if path and path.name == 'unified_87.onnx' else 'verified_core_yolo11_with_browser_tracking'),
             'unified_still_strategy': 'core_plus_filtered_new_classes_when_available',
             'specialist_value_model_available': specialist_ready,
@@ -178,7 +201,7 @@ def health():
                               if path and path.name == 'best.onnx' else None),
             'class_count': detected_labels,
             'message': message,
-            'available_models': ['custom'] + (['round3'] if round3_ready else []) + (['sam'] if specialist_ready else []) + (['yolo11n'] if ALLOW_GENERIC else []),
+            'available_models': ['auto', 'custom'] + (['unified'] if unified_candidate_installed else []) + (['round3'] if round3_ready else []) + (['sam'] if specialist_ready else []) + (['yolo11n'] if ALLOW_GENERIC else []),
             'experimental_round3_available': round3_ready,
             'experimental_round3_class_count': 81 if round3_ready else None,
             'live_camera_supported': True}
@@ -267,7 +290,7 @@ async def detect(
     show_labels: Annotated[bool, Form()] = True,
     live: Annotated[bool, Form()] = False,
 ):
-    if model not in {'auto', 'custom', 'round3', 'sam', 'yolo11n'}:
+    if model not in {'auto', 'custom', 'unified', 'round3', 'sam', 'yolo11n'}:
         raise HTTPException(422, 'Invalid model selection')
     if model == 'yolo11n' and not ALLOW_GENERIC:
         raise HTTPException(422, 'Generic model disabled on this deployment')
@@ -280,7 +303,7 @@ async def detect(
     start = time.perf_counter()
     rgb = await run_in_threadpool(decode_image, data)
     detections = await run_in_threadpool(infer, rgb, model, confidence, live)
-    return {'detections': detections, 'model': 'CircuitVision YOLO11' if model == 'auto' else model,
+    return {'detections': detections, 'model': ('YOLOv11 (2)' if model == 'unified' else 'YOLOv11 (1)' if model == 'auto' else model),
             'inference_strategy': ('low_latency_core' if live else 'core_with_optional_round3_and_sam') if model == 'auto' else model,
             'image_width': rgb.width, 'image_height': rgb.height,
             'processing_ms': round((time.perf_counter()-start)*1000,1),
