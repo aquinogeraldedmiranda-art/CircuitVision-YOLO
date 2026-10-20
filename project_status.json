@@ -44,6 +44,11 @@
   "recent_updates": [
     {
       "date": "2026-10-20",
+      "title": "Progress-update safeguards tested",
+      "detail": "GitHub checks require feature changes to review public status; milestones can advance once actual model evidence becomes available."
+    },
+    {
+      "date": "2026-10-20",
       "title": "Project progress is now shown on the About page",
       "detail": "A versioned project status and live deployment/model details distinguish completed work from testing and planned work."
     },
