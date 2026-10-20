@@ -233,6 +233,10 @@ jobs:
           send_auto(False)
           PY
 
+      - name: Verify both selectable YOLOv11 detectors on production
+        env:
+          CIRCUITVISION_BASE: https://circuitvision-yolo-lab.onrender.com
+        run: python tests/test_remote_two_models.py
       - name: Test both live model routes on the same image
         env:
           BASE_URL: https://circuitvision-yolo-lab.onrender.com
