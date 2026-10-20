@@ -20,6 +20,7 @@ from PIL import Image, ImageOps, UnidentifiedImageError
 
 from backend.onnx_inference import ONNXDetector
 from backend.smart_fusion import auto_fuse
+from backend.still_precision import detect_still_with_tiles
 from backend.specialist_fusion import SAM_CLASS_NAMES, refine_with_sam
 from backend.pretrained import ensure_model
 from backend.model_archive import install_uploaded_checkpoint, install_accuracy_round2, install_experimental_round3, MODEL_SHA256
@@ -36,7 +37,7 @@ app = FastAPI(title='CircuitVision YOLO API', version='3.0.0', docs_url='/api/do
 
 def custom_weight_path() -> Path | None:
     paths = ([Path(CUSTOM_MODEL).expanduser()] if CUSTOM_MODEL
-             else [MODEL_FOLDER / 'best.onnx', MODEL_FOLDER / 'my_model.onnx',
+             else [MODEL_FOLDER / 'unified_87.onnx', MODEL_FOLDER / 'best.onnx', MODEL_FOLDER / 'my_model.onnx',
                    MODEL_FOLDER / 'best.pt', MODEL_FOLDER / 'my_model.pt',
                    MODEL_FOLDER / 'eesob.onnx'])
     return next((p.resolve() for p in paths if p.is_file()), None)
@@ -106,7 +107,7 @@ class ModelStore:
             if str(path) != self.path or self.model is None:
                 try:
                     if path.suffix.lower() == '.onnx':
-                        instance = ONNXDetector(path, MODEL_FOLDER / 'classes.json')
+                        instance = ONNXDetector(path, MODEL_FOLDER / ('unified_87_classes.json' if path.name == 'unified_87.onnx' else 'classes.json'))
                         runtime = 'onnx'
                     elif path.suffix.lower() == '.pt':
                         from ultralytics import YOLO
@@ -157,8 +158,11 @@ def health():
         (MODEL_FOLDER / 'sam_10.pt').is_file() and importlib.util.find_spec('ultralytics') is not None)
     specialist_ready = specialist_ready and (MODEL_FOLDER / 'sam_classes.json').is_file()
     return {'ok': True, 'custom_model_available': can_run,
+            'deployment_commit': os.getenv('RENDER_GIT_COMMIT', 'local')[:12],
+            'still_image_tiling': os.getenv('CV_STILL_TILES', '1') == '1',
+            'trained_single_model_active': bool(path and path.name == 'unified_87.onnx'),
             'unified_yolo11_available': can_run,
-            'unified_video_strategy': 'verified_core_yolo11_with_browser_tracking',
+            'unified_video_strategy': ('single_trained_unified_checkpoint' if path and path.name == 'unified_87.onnx' else 'verified_core_yolo11_with_browser_tracking'),
             'unified_still_strategy': 'core_plus_filtered_new_classes_when_available',
             'specialist_value_model_available': specialist_ready,
             'sam_specialist_available': specialist_ready,
@@ -167,7 +171,8 @@ def health():
             'model_format': path.suffix.lstrip('.') if path else None,
             'model_origin': ('Yacin Hamdi / EESOB pretrained model (2026)' if path and path.name == 'eesob.onnx' else
                              'CircuitVision student-trained combined dataset YOLO11n' if path else None),
-            'model_version': ('circuitvision-accuracy-round2-57-yolo11n'
+            'model_version': ('circuitvision-unified-87-yolo11' if path and path.name == 'unified_87.onnx' else
+                              'circuitvision-accuracy-round2-57-yolo11n'
                               if path and path.name == 'best.onnx' and (MODEL_FOLDER / 'CircuitVision_Accuracy_Round2.zip').is_file()
                               else 'circuitvision-combined-57-yolo11n'
                               if path and path.name == 'best.onnx' else None),
@@ -197,10 +202,12 @@ def infer(rgb: Image.Image, model: str, conf: float, live: bool = False) -> list
     if model == 'auto':
         # Live inference stays on the fast, stable Round 2 path. Browser motion
         # tracking interpolates boxes between genuine server predictions.
-        primary = infer(rgb, 'custom', conf)
+        primary = infer(rgb, 'custom', conf, live=live)
         if live:
             return primary
         combined = primary
+        if custom_weight_path() and custom_weight_path().name == 'unified_87.onnx':
+            return combined  # One validated checkpoint supersedes the ensemble.
         # Extra Round 3 classes are optional, never required for core detection.
         if (MODEL_FOLDER / 'round3.onnx').is_file():
             try:
@@ -222,6 +229,8 @@ def infer(rgb: Image.Image, model: str, conf: float, live: bool = False) -> list
         return combined
     instance, runtime = store.get(model)
     if runtime == 'onnx':
+        if model == 'custom' and not live:
+            return detect_still_with_tiles(instance, rgb, conf)
         return instance.predict(rgb, conf)
     bgr = np.ascontiguousarray(np.asarray(rgb)[:, :, ::-1])
     with store.lock:
