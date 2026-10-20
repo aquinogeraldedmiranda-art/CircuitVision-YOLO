@@ -224,7 +224,7 @@ jobs:
                   method='POST',headers={'Content-Type':'multipart/form-data; boundary='+boundary})
               with urllib.request.urlopen(request,timeout=150) as res:
                   data=json.load(res)
-              assert data.get('model')=='CircuitVision YOLO11',data
+              assert data.get('model')=='YOLOv11 (1)',data
               assert isinstance(data.get('detections'),list)
               assert data.get('inference_strategy')==('low_latency_core' if live_mode else 'core_with_optional_round3_and_sam')
               print('Unified YOLO11', 'live' if live_mode else 'photo',
@@ -233,6 +233,10 @@ jobs:
           send_auto(False)
           PY
 
+      - name: Verify both selectable YOLOv11 detectors on production
+        env:
+          CIRCUITVISION_BASE: https://circuitvision-yolo-lab.onrender.com
+        run: python tests/test_remote_two_models.py
       - name: Test both live model routes on the same image
         env:
           BASE_URL: https://circuitvision-yolo-lab.onrender.com

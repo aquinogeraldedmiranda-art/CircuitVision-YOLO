@@ -2,7 +2,7 @@
   "schema_version": 1,
   "project": "CircuitVision",
   "reviewed_on": "2026-10-21",
-  "current_phase": "Two selectable YOLOv11 models; optional 87-class model awaiting installation and real-world validation",
+  "current_phase": "Dual model selection deployed; actual candidate ONNX installed, post-deploy inference verification underway",
   "milestones": [
     {
       "id": "website",
@@ -31,8 +31,8 @@
     {
       "id": "unified",
       "title": "One jointly trained YOLO11 model",
-      "status": "integration_prepared",
-      "detail": "The 87-class checkpoint was trained and exported, and model selection, backend dispatch and class mapping have been wired. Installation of the actual ONNX file on GitHub/Render is still required. Five sample-photo tests had a missed green LED and misidentified 9V battery, so model (2) is experimental and not declared more accurate."
+      "status": "deployed",
+      "detail": "87-class candidate ONNX was uploaded to models/unified_87.onnx and deployed to the existing Render service as user-selectable YOLOv11 (2). It is not the default and remains experimental: small photo test missed a green LED and misclassified a 9V battery. Real production API smoke tests and broader evaluation are required."
     },
     {
       "id": "evaluation",
@@ -42,6 +42,11 @@
     }
   ],
   "recent_updates": [
+    {
+      "date": "2026-10-21",
+      "title": "Actual YOLOv11 (2) checkpoint installed alongside default detector",
+      "detail": "Verified GitHub model file 10,748,517 bytes matches candidate export SHA-1 9ae95428d68c8bfacc5d2b516598506ecc8ebe83. Render deployed commit 553d003862e6478324c6ef9376aa93525acf29e7 as live. Added a real-API smoke test for both selectable models; deployment is not a claim of improved accuracy."
+    },
     {
       "date": "2026-10-21",
       "title": "User-selectable YOLOv11 (1) and YOLOv11 (2) website integration",
