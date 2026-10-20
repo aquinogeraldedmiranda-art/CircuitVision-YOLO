@@ -172,6 +172,8 @@ jobs:
                   print('Attempt',attempt+1,str(exc),flush=True)
               time.sleep(25)
           assert health and health.get('custom_model_available') is True, 'Detector failed to load'
+          assert len(health.get('deployment_commit', '')) == 12, 'New CircuitVision release is not deployed'
+          assert health.get('still_image_tiling') is True, 'High-resolution upload enhancement is not deployed'
           assert health.get('model_file') == target_model, 'Unexpected model source'
           assert health.get('class_count') == target_classes, 'Unexpected model class count'
           assert health.get('model_version') == target_version, 'Unexpected deployed model version'
@@ -208,7 +210,7 @@ jobs:
                   data=json.load(res)
               assert data.get('model')=='CircuitVision YOLO11',data
               assert isinstance(data.get('detections'),list)
-              assert data.get('inference_strategy')==('low_latency_core' if live_mode else 'core_with_filtered_expansion')
+              assert data.get('inference_strategy')==('low_latency_core' if live_mode else 'core_with_optional_round3_and_sam')
               print('Unified YOLO11', 'live' if live_mode else 'photo',
                     'inference succeeded:',data.get('processing_ms'),'ms',flush=True)
           send_auto(True)
