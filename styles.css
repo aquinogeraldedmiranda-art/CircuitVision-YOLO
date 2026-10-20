@@ -113,3 +113,24 @@ html,body,#app{max-width:100%;overflow-x:clip}
   .about-steps .step p{line-height:1.55}
   .about-intro{min-width:0}
 }
+
+
+/* The About page reads actual model readiness and reviewed milestones from
+   /api/project-status. Keep each step usable on narrow mobile screens. */
+.project-progress{margin-top:20px}
+.progress-title{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;flex-wrap:wrap}
+.progress-title h3{margin:0 0 7px}
+.runtime-summary{margin:18px 0;padding:16px;border:1px solid #376575;border-radius:12px;background:#152f3f}
+.runtime-summary strong{color:#b8fff1;display:block;font-size:.92rem;overflow-wrap:anywhere}
+.runtime-summary p{margin:9px 0 0;color:#bfd5e3;font-size:.77rem;line-height:1.6;overflow-wrap:anywhere}
+.progress-items{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
+.progress-item{min-width:0;padding:16px;border:1px solid #344962;border-radius:12px;background:#182840}
+.progress-item-heading{display:flex;flex-wrap:wrap;align-items:center;gap:9px;justify-content:space-between}
+.progress-item-heading strong{font-size:.87rem;min-width:0}
+.progress-state{font-size:.69rem;color:#c2baff;background:#292b51;border:1px solid #484876;padding:5px 9px;border-radius:8px}
+.progress-item p{font-size:.79rem;margin:10px 0 0;line-height:1.58}
+.progress-updates{margin:10px 0;padding-left:22px}
+.progress-updates li{margin:0 0 14px;color:#e1eafa;font-size:.82rem}
+.progress-updates p{font-size:.77rem;margin:6px 0}
+.progress-date{font-size:.72rem;color:#adbed6;margin-left:5px}
+@media(max-width:750px){.progress-items{grid-template-columns:minmax(0,1fr)}.progress-item{padding:14px}.project-progress{margin-top:15px}}
