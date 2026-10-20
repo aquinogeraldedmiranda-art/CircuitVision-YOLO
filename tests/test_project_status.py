@@ -6,9 +6,7 @@ recognition accuracy or imply that an unfinished Colab run is complete.
 import json
 from pathlib import Path
 
-from fastapi.testclient import TestClient
-
-from backend.main import app
+from backend.main import project_status
 
 ROOT=Path(__file__).resolve().parents[1]
 
@@ -28,10 +26,10 @@ def test_reviewed_project_milestones_are_truthful():
 
 
 def test_project_status_endpoint_is_fresh_and_reports_actual_runtime():
-    response=TestClient(app).get('/api/project-status')
+    response=project_status()
     assert response.status_code==200
     assert response.headers['cache-control']=='no-store'
-    data=response.json()
+    data=json.loads(response.body)
     assert data['project']['project']=='CircuitVision'
     runtime=data['runtime']
     assert type(runtime['model_ready']) is bool
