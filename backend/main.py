@@ -20,6 +20,7 @@ from PIL import Image, ImageOps, UnidentifiedImageError
 
 from backend.onnx_inference import ONNXDetector
 from backend.smart_fusion import auto_fuse
+from backend.specialist_fusion import SAM_CLASS_NAMES, refine_with_sam
 from backend.pretrained import ensure_model
 from backend.model_archive import install_uploaded_checkpoint, install_accuracy_round2, install_experimental_round3, MODEL_SHA256
 
@@ -48,6 +49,7 @@ class ModelStore:
         self.model: object | None = None
         self.generic: object | None = None
         self.round3: tuple | None = None
+        self.specialist: tuple | None = None
 
     def get(self, kind: str):
         with self.lock:
@@ -61,6 +63,29 @@ class ModelStore:
                     except Exception as exc:
                         raise HTTPException(503, 'Generic model unavailable; install Ultralytics for local testing.') from exc
                 return self.generic, 'pt'
+            if kind == 'sam':
+                path_sam = MODEL_FOLDER / 'sam_10.onnx'
+                pt_sam = MODEL_FOLDER / 'sam_10.pt'
+                labels_sam = MODEL_FOLDER / 'sam_classes.json'
+                if not labels_sam.is_file():
+                    raise HTTPException(503, 'Sam specialist class mapping is missing.')
+                if not path_sam.is_file() and not pt_sam.is_file():
+                    raise HTTPException(503, 'Sam specialist not installed. Export sam_10.onnx from my_model.pt for web hosting.')
+                if self.specialist is None:
+                    try:
+                        if path_sam.is_file():
+                            instance_sam = ONNXDetector(path_sam, labels_sam)
+                            runtime_sam = 'onnx'
+                        else:
+                            from ultralytics import YOLO
+                            instance_sam = YOLO(str(pt_sam))
+                            runtime_sam = 'pt'
+                        if [instance_sam.names[i] for i in range(10)] != list(SAM_CLASS_NAMES):
+                            raise ValueError('Specialist names do not match verified 10-class checkpoint.')
+                        self.specialist = (instance_sam, runtime_sam)
+                    except Exception as exc:
+                        raise HTTPException(503, f'Cannot load Sam specialist: {exc}') from exc
+                return self.specialist
             if kind == 'round3':
                 path3 = MODEL_FOLDER / 'round3.onnx'
                 labels3 = MODEL_FOLDER / 'round3_classes.json'
@@ -128,11 +153,16 @@ def health():
         except HTTPException as exc:
             message = f'Model loading failed: {exc.detail}'
     round3_ready = (MODEL_FOLDER / 'round3.onnx').is_file() and (MODEL_FOLDER / 'round3_classes.json').is_file()
+    specialist_ready = (MODEL_FOLDER / 'sam_10.onnx').is_file() or (
+        (MODEL_FOLDER / 'sam_10.pt').is_file() and importlib.util.find_spec('ultralytics') is not None)
+    specialist_ready = specialist_ready and (MODEL_FOLDER / 'sam_classes.json').is_file()
     return {'ok': True, 'custom_model_available': can_run,
             'unified_yolo11_available': can_run,
             'unified_video_strategy': 'verified_core_yolo11_with_browser_tracking',
             'unified_still_strategy': 'core_plus_filtered_new_classes_when_available',
-            'specialist_value_model_available': False,
+            'specialist_value_model_available': specialist_ready,
+            'sam_specialist_available': specialist_ready,
+            'sam_refinement_on_live_frames': False,
             'model_file': path.name if path else None,
             'model_format': path.suffix.lstrip('.') if path else None,
             'model_origin': ('Yacin Hamdi / EESOB pretrained model (2026)' if path and path.name == 'eesob.onnx' else
@@ -143,7 +173,7 @@ def health():
                               if path and path.name == 'best.onnx' else None),
             'class_count': detected_labels,
             'message': message,
-            'available_models': ['custom'] + (['round3'] if round3_ready else []) + (['yolo11n'] if ALLOW_GENERIC else []),
+            'available_models': ['custom'] + (['round3'] if round3_ready else []) + (['sam'] if specialist_ready else []) + (['yolo11n'] if ALLOW_GENERIC else []),
             'experimental_round3_available': round3_ready,
             'experimental_round3_class_count': 81 if round3_ready else None,
             'live_camera_supported': True}
@@ -165,21 +195,31 @@ def decode_image(data: bytes) -> Image.Image:
 
 def infer(rgb: Image.Image, model: str, conf: float, live: bool = False) -> list[dict]:
     if model == 'auto':
-        # Fast video uses the trusted student-trained core model, preserving
-        # camera responsiveness. Stills can add carefully filtered *new*
-        # equipment categories from Round 3 without replacing core labels.
+        # Live inference stays on the fast, stable Round 2 path. Browser motion
+        # tracking interpolates boxes between genuine server predictions.
         primary = infer(rgb, 'custom', conf)
-        if live or not (MODEL_FOLDER / 'round3.onnx').is_file():
+        if live:
             return primary
-        try:
-            extra = infer(rgb, 'round3', max(.55, conf))
-            baseline, _runtime = store.get('custom')
-            return auto_fuse(primary, extra, baseline.names.values(),
-                             minimum_extra_confidence=max(.55, conf))
-        except Exception:
-            # Optional extended categories must never take down the normal
-            # electronics detector. Leave the stable model operational.
-            return primary
+        combined = primary
+        # Extra Round 3 classes are optional, never required for core detection.
+        if (MODEL_FOLDER / 'round3.onnx').is_file():
+            try:
+                extra = infer(rgb, 'round3', max(.55, conf))
+                baseline, _runtime = store.get('custom')
+                combined = auto_fuse(primary, extra, baseline.names.values(),
+                                     minimum_extra_confidence=max(.55, conf))
+            except Exception:
+                pass  # Keep trained core available if optional expansion fails.
+        # Sam provides visual hints for select resistor values / LED colors on
+        # uploads and captured stills. Do not run it on every live video frame.
+        if ((MODEL_FOLDER / 'sam_10.onnx').is_file() or
+                (MODEL_FOLDER / 'sam_10.pt').is_file()):
+            try:
+                specialist = infer(rgb, 'sam', max(.60, conf))
+                combined = refine_with_sam(combined, specialist)
+            except Exception:
+                pass  # A missing/invalid specialist must not break the website.
+        return combined
     instance, runtime = store.get(model)
     if runtime == 'onnx':
         return instance.predict(rgb, conf)
@@ -214,7 +254,7 @@ async def detect(
     show_labels: Annotated[bool, Form()] = True,
     live: Annotated[bool, Form()] = False,
 ):
-    if model not in {'auto', 'custom', 'round3', 'yolo11n'}:
+    if model not in {'auto', 'custom', 'round3', 'sam', 'yolo11n'}:
         raise HTTPException(422, 'Invalid model selection')
     if model == 'yolo11n' and not ALLOW_GENERIC:
         raise HTTPException(422, 'Generic model disabled on this deployment')
@@ -228,7 +268,7 @@ async def detect(
     rgb = await run_in_threadpool(decode_image, data)
     detections = await run_in_threadpool(infer, rgb, model, confidence, live)
     return {'detections': detections, 'model': 'CircuitVision YOLO11' if model == 'auto' else model,
-            'inference_strategy': ('low_latency_core' if live else 'core_with_filtered_expansion') if model == 'auto' else model,
+            'inference_strategy': ('low_latency_core' if live else 'core_with_optional_round3_and_sam') if model == 'auto' else model,
             'image_width': rgb.width, 'image_height': rgb.height,
             'processing_ms': round((time.perf_counter()-start)*1000,1),
             'annotated_image_url': None}
