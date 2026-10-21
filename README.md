@@ -19,9 +19,7 @@ supports uploaded images and a mobile/laptop camera.
   The inference integration exists, but its verified ONNX export has not been
   installed in the current Render service. It does **not** automatically read
   resistor values today.
-- **Future unified model:** a three-stage Google Colab training notebook
-  prepares one 87-class model using the original annotated datasets. It is a
-  candidate, **not yet trained or deployed**.
+- **YOLOv11 (2):** the separately trained 87-class ONNX model has been deployed as an optional model selectable in Upload and Live Camera. Preliminary checks identified missed and incorrect classifications; it is not established as more accurate.
 
 Detections are model predictions, **not** verified electrical measurements.
 A 90% detection confidence should not be described in our project paper as
@@ -34,9 +32,43 @@ measurements of missed objects, false positives and camera latency.
 
 **Health:** https://circuitvision-yolo-lab.onrender.com/api/health
 
-The public interface presents one CircuitVision YOLO11 detector with Upload
-and Live Camera experiences. Both call the same FastAPI endpoint. The Render
+The public interface offers YOLOv11 (1) (default) and YOLOv11 (2) (87-class candidate), each selectable for Upload and Live Camera. Both use the same FastAPI endpoint. The Render
 CPU deployment uses ONNX Runtime, not the Ultralytics Python prediction loop.
+
+## Component reference database
+
+The working application includes a relational **SQLite reference catalog**.
+The schema is `database/schema.sql` and initial component records are in
+`database/component_seed.json`, generated from the original team-written
+`component_details.mjs` guide and verified 87-class label mapping.
+
+- `component_categories` stores category-level educational descriptions and
+  electrical verification guidance.
+- `components` maps visible component names to category records by foreign key.
+- `model_registry` and `model_classes` link the unified YOLO classes to
+  component records using declared relational constraints.
+- `GET /api/components` searches catalog entries; `GET /api/components/{label}`
+  retrieves one reference. `POST /api/detect` joins predicted labels to
+  database records using the `component_info` field; the Component Guide
+  shows the same records with a built-in fallback only when the DB is offline.
+- Uploaded images and camera frames are not stored, and the database does not
+  invent electronic measurements, datasheet values or confidence/accuracy.
+
+Initialize and check with:
+```bash
+python -m backend.component_db init
+python -m backend.component_db stats
+python -m backend.component_db list --query Resistor
+python -m backend.component_db upsert --label "Sample Component" --category general
+```
+
+The default SQLite path is `/tmp/circuitvision_components.sqlite3` and
+can be overridden with `CV_DATABASE_PATH`. Render's default filesystem
+is **ephemeral**, so edits made only to the running database do not survive
+re-deployments. The tracked seed JSON and schema recreate the catalog on
+every server boot. For persistent manual edits, update the seed or attach a
+persistent database service; do not claim multi-user data persistence.
+No public database write endpoint is exposed.
 
 ## Keeping development records accurate
 
