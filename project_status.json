@@ -2,13 +2,13 @@
   "schema_version": 1,
   "project": "CircuitVision",
   "reviewed_on": "2026-10-21",
-  "current_phase": "Dual model selection deployed; actual candidate ONNX installed, post-deploy inference verification underway",
+  "current_phase": "Real SQLite component catalog integration staged, awaiting automated tests and production validation",
   "milestones": [
     {
       "id": "website",
       "title": "CircuitVision website",
       "status": "deployed",
-      "detail": "Existing production upload and live camera remain on current YOLOv11 detector by default. New selector gives a second explicitly optional 87-class model when its ONNX checkpoint is installed; no silent fallback."
+      "detail": "Existing upload and live camera model selection preserved. A new SQLite relational catalog serves component reference data through GET /api/components, GET /api/components/{label}, and model inference response joins. Release pending passing tests and Render smoke verification."
     },
     {
       "id": "live",
@@ -39,9 +39,20 @@
       "title": "Real laboratory evaluation",
       "status": "in_progress",
       "detail": "The independent Colab ZIP uploaded on 21 Oct contains empty CSV headers. Local ONNX run used five previous photos; independence from training photos is not verified. More annotated novel lab and negative-control photos plus true-held-out class metrics are required."
+    },
+    {
+      "id": "database",
+      "title": "SQLite relational component information",
+      "status": "integration_prepared",
+      "detail": "Normalized schema with categories, component label records, model registry and 87-class mapping. Seed generated from existing team-written guide, no false specifications; lookup API and both detector response pathways wired to SQLite. On free Render, data is rebuilt from tracked schema and seed at boot (ephemeral filesystem); runtime-only edits are not durable. Awaiting CI and release."
     }
   ],
   "recent_updates": [
+    {
+      "date": "2026-10-21",
+      "title": "Prepare actual relational SQLite component-information integration",
+      "detail": "Added normalized schema, 17 source category records (16 authored + general fallback), 90 class/guide labels, 87 YOLOv11 (2) model mappings, database read APIs, inference-response joins, frontend reference retrieval, setup scripts and software tests. Public YOLO models and training metrics unchanged. Real SQLite on default Render filesystem will be reconstructed after restarts rather than persistent for writes."
+    },
     {
       "date": "2026-10-21",
       "title": "Actual YOLOv11 (2) checkpoint installed alongside default detector",
