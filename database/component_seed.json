@@ -246,7 +246,7 @@
     },
     {
       "label": "LCD OLED",
-      "category": "led"
+      "category": "display"
     },
     {
       "label": "LDR",
