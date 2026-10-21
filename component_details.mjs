@@ -52,7 +52,7 @@ export function getComponentDetails(label){
   const key = s.includes('resistor')&&!s.includes('photo')?'resistor':
     s==='ldr'||s.includes('photoresistor')?'ldr':
     s.includes('capacitor')?'capacitor':
-    s.includes('led')?'led':
+    s.includes('led')&&!s.includes('oled')?'led':
     s.includes('diode')?'diode':
     s.includes('breadboard')?'breadboard':
     s.includes('potentiometer')?'potentiometer':

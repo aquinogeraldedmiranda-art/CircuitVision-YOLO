@@ -7,6 +7,7 @@ from __future__ import annotations
 import io
 import importlib.util
 import os
+import sqlite3
 import threading
 import time
 from pathlib import Path
@@ -18,6 +19,7 @@ from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse, HTMLResponse
 from PIL import Image, ImageOps, UnidentifiedImageError
 
+from backend import component_db
 from backend.onnx_inference import ONNXDetector
 from backend.smart_fusion import auto_fuse
 from backend.still_precision import detect_still_with_tiles
@@ -142,6 +144,7 @@ store = ModelStore()
 
 @app.on_event('startup')
 async def download_public_lab_checkpoint():
+    await run_in_threadpool(component_db.initialize_database)
     # Render's free hosting keeps only build/runtime files, so retrieve the
     # verified pinned public model when the container starts.
     # Prefer the stronger tested Round-2 detector when its verified ZIP has
@@ -157,6 +160,10 @@ async def download_public_lab_checkpoint():
 
 @app.get('/api/health')
 def health():
+    try:
+        db_state = component_db.database_status()
+    except (OSError,sqlite3.Error,ValueError) as exc:
+        db_state = {"ready":False,"error":type(exc).__name__}
     path = custom_weight_path()
     can_run = False
     message = 'No trained detector available'
@@ -178,6 +185,9 @@ def health():
         (MODEL_FOLDER / 'sam_10.pt').is_file() and importlib.util.find_spec('ultralytics') is not None)
     specialist_ready = specialist_ready and (MODEL_FOLDER / 'sam_classes.json').is_file()
     return {'ok': True, 'custom_model_available': can_run,
+            'database_ready':db_state['ready'],
+            'database_component_count':db_state.get('components',0),
+            'database_model_2_class_links':db_state.get('mapped_model_2_classes',0),
             'deployment_commit': os.getenv('RENDER_GIT_COMMIT', 'local')[:12],
             'still_image_tiling': os.getenv('CV_STILL_TILES', '1') == '1',
             'trained_single_model_active': bool(path and path.name == 'unified_87.onnx'),
@@ -281,6 +291,30 @@ def infer(rgb: Image.Image, model: str, conf: float, live: bool = False) -> list
     return predictions
 
 
+@app.get('/api/components')
+def components(query: str = '', limit: int = 100):
+    if len(query)>120:
+        raise HTTPException(422, 'Component search is too long')
+    try:
+        items=component_db.list_components(query,limit)
+    except (sqlite3.Error,OSError,ValueError) as exc:
+        raise HTTPException(503, 'Component database is temporarily unavailable') from exc
+    return {'source':'sqlite','count':len(items),'items':items}
+
+
+@app.get('/api/components/{label}')
+def component_info(label: str):
+    if not label or len(label)>120:
+        raise HTTPException(422, 'Invalid component label')
+    try:
+        info=component_db.get_component(label)
+    except (sqlite3.Error,OSError,ValueError) as exc:
+        raise HTTPException(503,'Component database is temporarily unavailable') from exc
+    if info is None:
+        raise HTTPException(404,'Component not found in the current catalog')
+    return info
+
+
 @app.post('/api/detect')
 async def detect(
     image: Annotated[UploadFile, File(description='Image or camera frame, JPG/PNG/WEBP')],
@@ -303,7 +337,21 @@ async def detect(
     start = time.perf_counter()
     rgb = await run_in_threadpool(decode_image, data)
     detections = await run_in_threadpool(infer, rgb, model, confidence, live)
-    return {'detections': detections, 'model': ('YOLOv11 (2)' if model == 'unified' else 'YOLOv11 (1)' if model == 'auto' else model),
+    # Each authentic YOLO prediction is joined to the relational component
+    # catalog by class label. No uploaded photo or camera frame is stored.
+    reference_status='available'
+    try:
+        refs=await run_in_threadpool(component_db.lookup_components,
+                                     [item.get('label','') for item in detections])
+        detections=[{**item,
+                     'component_info':refs.get(str(item.get('label','')).casefold())}
+                     for item in detections]
+    except (sqlite3.Error,OSError,ValueError):
+        # Do not break camera inference when reference storage is unhealthy.
+        reference_status='unavailable'
+        detections=[{**item,'component_info':None} for item in detections]
+    return {'detections': detections,
+            'reference_status':reference_status, 'model': ('YOLOv11 (2)' if model == 'unified' else 'YOLOv11 (1)' if model == 'auto' else model),
             'inference_strategy': ('low_latency_core' if live else 'core_with_optional_round3_and_sam') if model == 'auto' else model,
             'image_width': rgb.width, 'image_height': rgb.height,
             'processing_ms': round((time.perf_counter()-start)*1000,1),

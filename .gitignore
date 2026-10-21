@@ -7,3 +7,9 @@ models/*.pt
 models/best.onnx
 models/classes.json
 .env
+
+# SQLite runtime data is reconstructed from versioned schema and seed.
+*.sqlite3
+*.sqlite3-journal
+*.sqlite3-wal
+*.sqlite3-shm

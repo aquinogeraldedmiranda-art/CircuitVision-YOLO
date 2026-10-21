@@ -41,7 +41,7 @@ const link=(href,label,cls='')=>`<a href="#/${href}" class="${cls}" data-link>${
 const button=(label,action,cls='button',attr='')=>`<button type="button" class="${cls}" data-action="${action}" ${attr}>${label}</button>`;
 const app=document.getElementById('app');
 const state={page:readHash(),menuOpen:false,file:null,fileURL:null,fileSource:null,settings:{confidence:35,model:'auto',showBoxes:true,showLabels:true,summary:true,zoom:1},
-  result:{detections:[],isDemo:false},resultSource:'not-run',resultFile:null,processing:false,stream:null,cameras:[],cameraId:'',cameraError:'',capturedCount:0,requestError:'',compareResults:null,selectedComponent:'Resistor',resistorBandCount:4,resistorBands4:['brown','black','red','gold'],resistorBands5:['brown','black','black','red','brown'],liveEnabled:false,liveBusy:false,liveTimer:null,liveDetections:[],liveFrameUrl:null,liveFrameSize:null,liveStatus:'',liveFrames:0,liveProcessingMs:0};
+  result:{detections:[],isDemo:false},resultSource:'not-run',resultFile:null,processing:false,stream:null,cameras:[],cameraId:'',cameraError:'',capturedCount:0,requestError:'',compareResults:null,selectedComponent:'Resistor',referenceByLabel:{},referenceLoadingFor:'',referenceAttempted:{},referenceError:'',resistorBandCount:4,resistorBands4:['brown','black','red','gold'],resistorBands5:['brown','black','black','red','brown'],liveEnabled:false,liveBusy:false,liveTimer:null,liveDetections:[],liveFrameUrl:null,liveFrameSize:null,liveStatus:'',liveFrames:0,liveProcessingMs:0};
 function readHash(){const slug=location.hash.replace(/^#\/?/,'').split('?')[0].toLowerCase();return pages.has(slug)?slug:'home';}
 function getMode(){return backendConfigured()?'api':'demo';}
 function detectionModeSwitch(active){return `<nav class="detection-mode-switch" aria-label="Detection mode">${link('camera',I('camera')+' <span>Live camera detector</span>',active==='camera'?'active':'')}${link('upload',I('upload')+' <span>Upload image</span>',active==='upload'?'active':'')}</nav>`;}
@@ -127,8 +127,39 @@ function results(){
 function liveObjectList(){if(!state.liveEnabled)return '<div class="live-list-empty">Detection is off. Start YOLO to see identified components.</div>';if(!state.liveDetections.length)return '<div class="live-list-empty">No components above confidence threshold yet.</div>';return state.liveDetections.slice(0,6).map(d=>`<div class="live-object-row"><b>${escapeHTML(d.label)}</b><span>${Math.round(d.confidence*100)}%</span><button type="button" class="detail-mini" data-action="component-detail" data-component="${escapeHTML(d.label)}">Details</button></div>`).join('');}
 function camera(){const on=!!state.stream;return appShell('ELECTRONICS LAB','Live detection','Use your camera to view electronic component predictions with YOLOv11.',`${detectionModeSwitch('camera')}${modelStatusBadge()}<div class="cam-grid"><section class="surface"><div class="surface-head"><div class="actions-inline" style="justify-content:space-between"><h3 style="margin:0">Real-time detection view</h3><span class="badge ${on?'green':''}">${on?'● CAMERA ON':'● CAMERA OFF'}</span></div></div><div class="video-container">${on?'<video id="camera-video" autoplay playsinline muted aria-label="Live camera preview"></video><div id="live-overlay" class="live-overlay" aria-hidden="true"></div><div id="live-status" class="live-status">'+escapeHTML(state.liveStatus||'Camera on · press Start YOLO detection')+'</div>':`<div class="camera-idle">${I('camera')}<h3>Start your live electronics detector</h3><p>Point your camera at an electronic component, then start detection to see its predicted label.</p></div>`}</div><div class="camera-controls">${button(I('camera')+' Enable webcam','start-camera','button '+(!on?'primary':'ghost'),on?'disabled':'')}${button(I('image')+' Capture frame','capture-camera','button ghost',!on?'disabled':'')}${button(I('stop')+' Stop camera','stop-camera','button ghost',!on?'disabled':'')}${button(I('bolt')+(state.liveEnabled?' Stop YOLO':' Start YOLO detection'),'toggle-live','button '+(state.liveEnabled?'danger':'ghost'),!on?'disabled':'')}</div>${state.cameraError?`<div class="info-line warning" style="margin-top:17px">${I('alert')}${escapeHTML(state.cameraError)}</div>`:''}<p class="file-note">Live camera uses the faster core YOLO detector with browser motion tracking. For closer component details, use Capture frame and run image detection. Verify electrical values independently. Frames are not stored.</p></section><div style="display:grid;gap:20px"><section class="surface"><h3>YOLO settings</h3><label class="field-label" for="camera-source">Video source</label><select id="camera-source" class="select"><option value="">Default camera</option>${state.cameras.map(x=>`<option value="${escapeHTML(x.deviceId)}" ${x.deviceId===state.cameraId?'selected':''}>${escapeHTML(x.label||'Camera')}</option>`).join('')}</select><div style="margin-top:15px"><div class="field-label">Detection model</div>${detectorChoices('camera-model')}</div><hr class="field-separator"><label for="live-zoom" class="field-label">Camera focus / zoom</label><select id="live-zoom" class="select"><option value="1" ${state.settings.zoom===1?'selected':''}>1× · Full view (modules, breadboards)</option><option value="2" ${state.settings.zoom===2?'selected':''}>2× · Small components (LED, resistor, LDR)</option></select><p class="file-note">For small parts, keep the component near the center of the camera. The 2× mode crops the center of each frame to make small objects larger for YOLO.</p><hr class="field-separator"><label for="confidence" class="field-label">Confidence threshold <b id="confidence-value">${state.settings.confidence}%</b></label><input id="confidence" class="range" type="range" min="1" max="99" value="${state.settings.confidence}"><div class="checks" style="margin-top:15px"><label class="check"><input type="checkbox" id="showBoxes" ${state.settings.showBoxes?'checked':''}> Show bounding boxes</label><label class="check"><input type="checkbox" id="showLabels" ${state.settings.showLabels?'checked':''}> Show confidence labels</label></div><hr class="field-separator"><div class="field-label">Captured frames</div><strong style="font-size:1.7rem">${state.capturedCount}</strong></section><section class="surface"><h3>Session summary</h3><div class="side-stat">Status <strong>${on?'Camera active':'Not started'}</strong></div><div class="side-stat">Detector <strong>${modelStatus.customReady?'Model ready':modelStatus.online?'Model unavailable':'Checking status'}</strong></div><div class="side-stat">Objects detected <strong id="live-count">${state.liveDetections.length||'0'}</strong></div><div class="side-stat">Frames analyzed <strong id="live-frames">${state.liveFrames}</strong></div><div class="side-stat">Last response <strong id="live-speed">${state.liveProcessingMs?state.liveProcessingMs+' ms':'—'}</strong></div><div id="live-detection-list" class="live-object-list">${liveObjectList()}</div><div class="info-line" style="margin-top:20px">${I('info')} Browser motion tracking estimates box movement between YOLO results, then corrects using the next detection. Fast movements, blur and occlusion can still cause mistakes. Try 2× focus for tiny parts, strong light, and 25–35% confidence to find missed objects; lower thresholds may also create false detections.</div></section></div></div>`);}
 
+async function loadComponentReference(label){
+  // Component details are fetched from the same relational database that
+  // enriches real detection results. The built-in guide stays as a fallback.
+  const key=String(label||'').trim().toLowerCase();
+  if(!backendConfigured()||!key||state.referenceAttempted[key])return;
+  state.referenceAttempted[key]=true;
+  state.referenceLoadingFor=key;
+  state.referenceError='';
+  try{
+    const base=String(cfg.baseUrl||'/api').replace(/\/$/,'');
+    const response=await fetch(base+'/components/'+encodeURIComponent(label),{cache:'no-store'});
+    if(!response.ok)throw Error('Component database HTTP '+response.status);
+    const info=await response.json();
+    if(info?.reference_source!=='sqlite')throw Error('Unexpected component reference format');
+    state.referenceByLabel[key]=info;
+  }catch(err){
+    state.referenceError='Database reference unavailable; showing the built-in guide.';
+  }finally{
+    if(state.referenceLoadingFor===key)state.referenceLoadingFor='';
+    if(state.page==='guide'&&state.selectedComponent.toLowerCase()===key)render();
+  }
+}
 function componentGuide(){
-  const info=getComponentDetails(state.selectedComponent);
+  const fallback=getComponentDetails(state.selectedComponent);
+  const dbEntry=state.referenceByLabel[state.selectedComponent.toLowerCase()];
+  const info=dbEntry?{...fallback,name:dbEntry.name,role:dbEntry.role,learn:dbEntry.learn,value:dbEntry.value}:fallback;
+  const sourceLine=dbEntry
+    ? '<div class="info-line">Component reference retrieved from the SQLite catalog. Confirm exact specifications with a datasheet.</div>'
+    : state.referenceLoadingFor===state.selectedComponent.toLowerCase()
+      ? '<div class="info-line">Loading component details from the database…</div>'
+      : state.referenceError
+        ? '<div class="info-line warning">'+escapeHTML(state.referenceError)+'</div>'
+        : '<div class="info-line">Educational reference; exact part specifications require verification.</div>';
   const bands=state.resistorBandCount===4?state.resistorBands4:state.resistorBands5;
   let decoded=null,error='';
   try{decoded=decodeResistorBands(bands)}catch(ex){error=ex.message;}
@@ -148,7 +179,7 @@ function componentGuide(){
   const about='<section class="surface"><h3>Component reference</h3><label for="guide-component" class="field-label">Choose a component</label><select class="select" id="guide-component">'+opt+'</select>'+
     '<div class="component-summary"><span class="badge green">REFERENCE · NOT A MEASUREMENT</span><h2>'+escapeHTML(info.name)+'</h2>'+
     '<h3>Purpose</h3><p>'+escapeHTML(info.role)+'</p><h3>Important details</h3><p>'+escapeHTML(info.learn)+'</p><h3>How to determine the value</h3><p>'+escapeHTML(info.value)+'</p></div>'+
-    '<div class="info-line">A YOLO bounding box identifies a component type. It does not measure resistance, read printed values, or guarantee a part number.</div></section>';
+    sourceLine+'<div class="info-line">A YOLO bounding box identifies a component type. It does not measure resistance, read printed values, or guarantee a part number.</div></section>';
   const calculator='<section class="surface component-calculator"><h3>Resistor color-band calculator</h3>'+
     '<p class="small">Enter the band colors you see on a real resistor. This calculation is from <strong>your inputs</strong>, not an automatic AI measurement.</p>'+
     '<label class="field-label" for="resistor-band-count">Number of bands</label><select class="select" id="resistor-band-count">'+
@@ -171,7 +202,7 @@ function about(){return appShell('ABOUT','About CircuitVision','A clear view of 
   '<p class="about-disclaimer">Results are visual predictions. Verify component identity and electrical values before practical use.</p>');
 }
 function processing(){return `<div class="processing-wrap" role="status" aria-live="polite"><div class="processing-box"><span class="badge">${I('bolt')} ${backendConfigured()?'ANALYZING IMAGE':'RUNNING SAMPLE DEMO'}</span><h2 style="margin-top:20px">${backendConfigured()?'Detecting components...':'Preparing demo results...'}</h2><p>${backendConfigured()?'Sending the image to your YOLO detection API.':'Loading the sample electronics detection preview.'}</p><div class="progress"><span></span></div><div class="small">${backendConfigured()?'Waiting for a model response':'Illustrative demonstration • no model inference'}</div></div></div>`;}
-function render(){document.title=`${state.page==='home'?'YOLO: CircuitVision | Electronics Laboratory Object Detection':state.page[0].toUpperCase()+state.page.slice(1)+' | YOLO: CircuitVision'}`;app.innerHTML=state.page==='home'?landing():state.page==='upload'?upload():state.page==='camera'?camera():state.page==='results'?results():state.page==='guide'?componentGuide():about();if(state.processing)app.insertAdjacentHTML('beforeend',processing());if(state.stream){const video=$('#camera-video');if(video){video.srcObject=state.stream;video.style.transform=state.settings.zoom===2?'scale(2)':'scale(1)';video.addEventListener('loadedmetadata',updateLiveOverlay,{once:true});updateLiveOverlay();}}const drag=$('#dropzone');if(drag){drag.addEventListener('dragover',e=>{e.preventDefault();drag.classList.add('drag-over')});drag.addEventListener('dragleave',()=>drag.classList.remove('drag-over'));drag.addEventListener('drop',e=>{e.preventDefault();drag.classList.remove('drag-over');if(e.dataTransfer.files.length)handleFile(e.dataTransfer.files[0]);});drag.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();$('#file-input')?.click();}})}}
+function render(){document.title=`${state.page==='home'?'YOLO: CircuitVision | Electronics Laboratory Object Detection':state.page[0].toUpperCase()+state.page.slice(1)+' | YOLO: CircuitVision'}`;app.innerHTML=state.page==='home'?landing():state.page==='upload'?upload():state.page==='camera'?camera():state.page==='results'?results():state.page==='guide'?componentGuide():about();if(state.processing)app.insertAdjacentHTML('beforeend',processing());if(state.page==='guide')void loadComponentReference(state.selectedComponent);if(state.stream){const video=$('#camera-video');if(video){video.srcObject=state.stream;video.style.transform=state.settings.zoom===2?'scale(2)':'scale(1)';video.addEventListener('loadedmetadata',updateLiveOverlay,{once:true});updateLiveOverlay();}}const drag=$('#dropzone');if(drag){drag.addEventListener('dragover',e=>{e.preventDefault();drag.classList.add('drag-over')});drag.addEventListener('dragleave',()=>drag.classList.remove('drag-over'));drag.addEventListener('drop',e=>{e.preventDefault();drag.classList.remove('drag-over');if(e.dataTransfer.files.length)handleFile(e.dataTransfer.files[0]);});drag.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();$('#file-input')?.click();}})}}
 async function handleFile(file){const accepted=['image/jpeg','image/png','image/webp'];if(!file||!accepted.includes(file.type)){toast('Choose a JPG, PNG or WEBP image.',true);return}if(file.size>(cfg.maxFileMB||10)*1024*1024){toast(`Image must be under ${cfg.maxFileMB||10} MB.`,true);return}if(state.fileURL)URL.revokeObjectURL(state.fileURL);state.file=file;state.fileURL=URL.createObjectURL(file);state.fileSource='upload';state.requestError='';state.compareResults=null;if(state.page!=='upload')route('upload');else render();toast('Image selected successfully.');}
 function clearImage(){if(state.fileURL)URL.revokeObjectURL(state.fileURL);state.file=null;state.fileURL=null;state.fileSource=null;render();}
 async function runDetection(){
@@ -181,7 +212,12 @@ async function runDetection(){
   try{
     if(backendConfigured()){
       const result=await detectImage(state.file,{...state.settings});
-      state.result=result;state.resultFile=state.file;
+      state.result=result;
+      for(const detection of result.detections||[]){
+        if(detection.componentInfo?.reference_source==='sqlite')
+          state.referenceByLabel[detection.label.toLowerCase()]=detection.componentInfo;
+      }
+      state.resultFile=state.file;
       if(state.resultFileURL)URL.revokeObjectURL(state.resultFileURL);
       state.resultFileURL=URL.createObjectURL(state.file);state.resultSource='api';
     }else{
