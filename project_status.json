@@ -2,7 +2,7 @@
   "schema_version": 1,
   "project": "CircuitVision",
   "reviewed_on": "2026-10-21",
-  "current_phase": "Real SQLite component catalog integration staged, awaiting automated tests and production validation",
+  "current_phase": "Production SQLite + YOLOv11 model/reference integration verified; final IEEE implementation documentation",
   "milestones": [
     {
       "id": "website",
@@ -43,11 +43,16 @@
     {
       "id": "database",
       "title": "SQLite relational component information",
-      "status": "integration_prepared",
-      "detail": "Normalized schema with categories, component label records, model registry and 87-class mapping. Seed generated from existing team-written guide, no false specifications; lookup API and both detector response pathways wired to SQLite. On free Render, data is rebuilt from tracked schema and seed at boot (ephemeral filesystem); runtime-only edits are not durable. Awaiting CI and release."
+      "status": "deployed",
+      "detail": "SQLite normalized catalog is live on the existing Render service. 90 component/guide records, 17 categories and 87 mapped unified-model class links seeded from team-authored references and class map; GET /api/components queries and individual reference retrieval passed real production tests. POST /api/detect joins genuine predictions with component_info. Database is seeded idempotently at startup on ephemeral Render filesystem; user-made runtime edits do not persist across deploys."
     }
   ],
   "recent_updates": [
+    {
+      "date": "2026-10-21",
+      "title": "Production database live lookup verified",
+      "detail": "Render deployed SQLite component catalog release 49abe2090cfc585838c5b1b73983079aabf1a689. GitHub remote smoke PR #17 confirmed database_ready=true, database_component_count=90, database_model_2_class_links=87, both models available and valid lookup for Resistor, LCD OLED and filtered search. Automated tests and relational foreign-key checks passed; user image data is not saved. Final paper may now describe implemented database rather than proposed database, with ephemeral storage limitation."
+    },
     {
       "date": "2026-10-21",
       "title": "Prepare actual relational SQLite component-information integration",
