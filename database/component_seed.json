@@ -1,0 +1,918 @@
+{
+  "project": "CircuitVision",
+  "seed_version": 1,
+  "source": "Team-authored component_details.mjs guide entries and deployed 87-class model map. Entries are educational references, not verified datasheets or measured values.",
+  "categories": [
+    {
+      "slug": "resistor",
+      "title": "Resistor",
+      "role": "Limits current and sets voltages in electronic circuits.",
+      "learn": "Resistance is measured in ohms (Ω). Axial resistors use color bands; SMD resistors may have printed numbers.",
+      "value": "Use the 4/5-band calculator or confirm with a multimeter. When the optional Sam specialist model is installed, YOLO may suggest 2K, 10K or 52K visually; this is not an electrical measurement and must be verified."
+    },
+    {
+      "slug": "led",
+      "title": "LED",
+      "role": "Emits light when forward biased with the correct current.",
+      "learn": "Polarity matters. Use a current-limiting resistor; typical forward voltage depends on color and part.",
+      "value": "LED voltage and current rating cannot be identified reliably from appearance alone."
+    },
+    {
+      "slug": "diode",
+      "title": "Diode",
+      "role": "Allows current mainly in one direction; used for rectification and protection.",
+      "learn": "Check the cathode stripe and datasheet. Use diode-test mode to measure forward drop.",
+      "value": "Exact type, voltage and current ratings require markings or a part number."
+    },
+    {
+      "slug": "capacitor",
+      "title": "Capacitor",
+      "role": "Stores electric charge; used for filtering, timing and decoupling.",
+      "learn": "Capacitance is measured in farads (often µF, nF or pF); electrolytic types can be polarized.",
+      "value": "Read printed capacitance and voltage ratings or measure with an LCR meter."
+    },
+    {
+      "slug": "ldr",
+      "title": "LDR / photoresistor",
+      "role": "Changes resistance as surrounding light changes.",
+      "learn": "Typical resistance is lower in bright light and higher in darkness.",
+      "value": "No fixed resistance value; measure in the current lighting conditions."
+    },
+    {
+      "slug": "breadboard",
+      "title": "Breadboard",
+      "role": "Allows temporary solderless prototyping of circuits.",
+      "learn": "Power rails may be split. Check internal connection groups and voltage limits.",
+      "value": "There is no electrical component value to decode."
+    },
+    {
+      "slug": "potentiometer",
+      "title": "Potentiometer",
+      "role": "Variable resistor used for adjustment or voltage division.",
+      "learn": "The wiper moves along the resistive track between end terminals.",
+      "value": "Measure outer-pin resistance or read the printed resistance marking."
+    },
+    {
+      "slug": "transistor",
+      "title": "Transistor",
+      "role": "Amplifies or switches electronic signals.",
+      "learn": "Pinout and switching limits differ by part and package.",
+      "value": "Exact part number and ratings must come from a marking or datasheet."
+    },
+    {
+      "slug": "ic",
+      "title": "Integrated circuit / logic IC",
+      "role": "Combines many electronic functions in one package.",
+      "learn": "74HC-series logic chips can look alike; the printed part number determines the logic function.",
+      "value": "OCR of the chip marking or manual part entry is needed to identify the precise IC."
+    },
+    {
+      "slug": "arduino",
+      "title": "Arduino board",
+      "role": "Programmable microcontroller development board.",
+      "learn": "Useful for sensor reading, embedded logic, digital and analog I/O.",
+      "value": "Voltage/current limits depend on the exact board variant and pins; check its datasheet."
+    },
+    {
+      "slug": "battery",
+      "title": "Battery",
+      "role": "Portable DC power source.",
+      "learn": "Voltage depends on chemistry, cell count and state of charge.",
+      "value": "Read the label and verify with a multimeter; appearance does not measure actual voltage."
+    },
+    {
+      "slug": "power",
+      "title": "Power module",
+      "role": "Regulates or distributes DC electrical power.",
+      "learn": "A breadboard power module can output multiple voltages and must be connected correctly.",
+      "value": "Read the regulator label and selected jumpers; confirm the actual output with a multimeter."
+    },
+    {
+      "slug": "sensor",
+      "title": "Sensor module",
+      "role": "Converts a physical measurement into an electrical signal.",
+      "learn": "Common examples include ultrasonic, IR, temperature and motion sensors.",
+      "value": "Range, supply voltage and calibration depend on the exact part number."
+    },
+    {
+      "slug": "display",
+      "title": "Display / indicator",
+      "role": "Presents readings, digits or status to a user.",
+      "learn": "Can use LED segments, character LCDs, LED matrices or OLED panels.",
+      "value": "Resolution, pinout and required voltage vary by module."
+    },
+    {
+      "slug": "instrument",
+      "title": "Lab instrument",
+      "role": "Measures or generates electronic signals in a workbench lab.",
+      "learn": "Examples include multimeters, oscilloscopes and function generators.",
+      "value": "Read the instrument display and use the correct probes and measurement range."
+    },
+    {
+      "slug": "general",
+      "title": "General component",
+      "role": "Laboratory/electronic object category in the detection model.",
+      "learn": "Check the printed part number, pinout and manufacturer documentation before use.",
+      "value": "The system does not automatically determine an electrical value. Verify with part markings or suitable measurement equipment."
+    }
+  ],
+  "components": [
+    {
+      "label": "7 Seg",
+      "category": "general"
+    },
+    {
+      "label": "Arduino Mega",
+      "category": "arduino"
+    },
+    {
+      "label": "Arduino Mini",
+      "category": "arduino"
+    },
+    {
+      "label": "Arduino Nano",
+      "category": "arduino"
+    },
+    {
+      "label": "Arduino Uno",
+      "category": "arduino"
+    },
+    {
+      "label": "Battery 9V",
+      "category": "battery"
+    },
+    {
+      "label": "Bluetooth",
+      "category": "general"
+    },
+    {
+      "label": "Breadboard",
+      "category": "breadboard"
+    },
+    {
+      "label": "Button",
+      "category": "general"
+    },
+    {
+      "label": "Buzzer",
+      "category": "general"
+    },
+    {
+      "label": "Capacitor",
+      "category": "capacitor"
+    },
+    {
+      "label": "Connection Cable",
+      "category": "general"
+    },
+    {
+      "label": "Crystal Oscilator",
+      "category": "general"
+    },
+    {
+      "label": "Dc Motor",
+      "category": "general"
+    },
+    {
+      "label": "Dht",
+      "category": "general"
+    },
+    {
+      "label": "Diode",
+      "category": "diode"
+    },
+    {
+      "label": "Display",
+      "category": "display"
+    },
+    {
+      "label": "ESP WiFi",
+      "category": "general"
+    },
+    {
+      "label": "ESP32",
+      "category": "esp32"
+    },
+    {
+      "label": "Fan",
+      "category": "general"
+    },
+    {
+      "label": "Flame Sensor",
+      "category": "sensor"
+    },
+    {
+      "label": "Gaz",
+      "category": "general"
+    },
+    {
+      "label": "H Bridge",
+      "category": "general"
+    },
+    {
+      "label": "IC",
+      "category": "ic"
+    },
+    {
+      "label": "Inductor",
+      "category": "general"
+    },
+    {
+      "label": "IR Receiver",
+      "category": "general"
+    },
+    {
+      "label": "IR Sensor",
+      "category": "sensor"
+    },
+    {
+      "label": "Joystick",
+      "category": "ic"
+    },
+    {
+      "label": "Keypad",
+      "category": "general"
+    },
+    {
+      "label": "LCD",
+      "category": "display"
+    },
+    {
+      "label": "LCD OLED",
+      "category": "led"
+    },
+    {
+      "label": "LDR",
+      "category": "ldr"
+    },
+    {
+      "label": "LED",
+      "category": "led"
+    },
+    {
+      "label": "LED Matrix",
+      "category": "led"
+    },
+    {
+      "label": "Lilypad",
+      "category": "general"
+    },
+    {
+      "label": "Lipo",
+      "category": "general"
+    },
+    {
+      "label": "Pile",
+      "category": "general"
+    },
+    {
+      "label": "Pir",
+      "category": "general"
+    },
+    {
+      "label": "Potentiometer",
+      "category": "potentiometer"
+    },
+    {
+      "label": "Power Module",
+      "category": "power"
+    },
+    {
+      "label": "Prototype PCB",
+      "category": "general"
+    },
+    {
+      "label": "Relai",
+      "category": "general"
+    },
+    {
+      "label": "Resistor",
+      "category": "resistor"
+    },
+    {
+      "label": "RFID",
+      "category": "general"
+    },
+    {
+      "label": "RTC",
+      "category": "general"
+    },
+    {
+      "label": "Servo",
+      "category": "general"
+    },
+    {
+      "label": "Soil Moisture",
+      "category": "general"
+    },
+    {
+      "label": "Solar Panel",
+      "category": "general"
+    },
+    {
+      "label": "Sound",
+      "category": "general"
+    },
+    {
+      "label": "Speaker",
+      "category": "general"
+    },
+    {
+      "label": "Stepper Driver",
+      "category": "general"
+    },
+    {
+      "label": "Stepper Motor",
+      "category": "general"
+    },
+    {
+      "label": "Support Pile",
+      "category": "general"
+    },
+    {
+      "label": "Switch",
+      "category": "general"
+    },
+    {
+      "label": "Transistor",
+      "category": "transistor"
+    },
+    {
+      "label": "Ultrasonic",
+      "category": "ic"
+    },
+    {
+      "label": "Variable Resistor",
+      "category": "resistor"
+    },
+    {
+      "label": "7-segment",
+      "category": "display"
+    },
+    {
+      "label": "Battery",
+      "category": "battery"
+    },
+    {
+      "label": "Bridge Rectifier",
+      "category": "general"
+    },
+    {
+      "label": "Component Storage Box",
+      "category": "general"
+    },
+    {
+      "label": "ESP32 CAM",
+      "category": "esp32"
+    },
+    {
+      "label": "Electronics Trainer Kit",
+      "category": "ic"
+    },
+    {
+      "label": "Function Generator",
+      "category": "instrument"
+    },
+    {
+      "label": "Fuse",
+      "category": "general"
+    },
+    {
+      "label": "Fuse Holder",
+      "category": "general"
+    },
+    {
+      "label": "GSM Module",
+      "category": "general"
+    },
+    {
+      "label": "Heat Sink",
+      "category": "general"
+    },
+    {
+      "label": "Humidity Sensor",
+      "category": "sensor"
+    },
+    {
+      "label": "IC Socket",
+      "category": "ic"
+    },
+    {
+      "label": "IGBT",
+      "category": "general"
+    },
+    {
+      "label": "LDR Sensor",
+      "category": "sensor"
+    },
+    {
+      "label": "MOSFET",
+      "category": "transistor"
+    },
+    {
+      "label": "Multimeter",
+      "category": "instrument"
+    },
+    {
+      "label": "Oscilloscope",
+      "category": "instrument"
+    },
+    {
+      "label": "Pin Header",
+      "category": "general"
+    },
+    {
+      "label": "Power Strip",
+      "category": "general"
+    },
+    {
+      "label": "Rain Sensor",
+      "category": "sensor"
+    },
+    {
+      "label": "Thermistor",
+      "category": "general"
+    },
+    {
+      "label": "USB Serial Module",
+      "category": "general"
+    },
+    {
+      "label": "Water Sensor",
+      "category": "sensor"
+    },
+    {
+      "label": "Ceramic Capacitor",
+      "category": "capacitor"
+    },
+    {
+      "label": "LED Blue",
+      "category": "led"
+    },
+    {
+      "label": "LED Green",
+      "category": "led"
+    },
+    {
+      "label": "Resistor 10K",
+      "category": "resistor"
+    },
+    {
+      "label": "Resistor 2K",
+      "category": "resistor"
+    },
+    {
+      "label": "Resistor 52K",
+      "category": "resistor"
+    },
+    {
+      "label": "Integrated Circuit",
+      "category": "general"
+    },
+    {
+      "label": "Ultrasonic Sensor",
+      "category": "ic"
+    },
+    {
+      "label": "7-Segment Display",
+      "category": "display"
+    }
+  ],
+  "model_classes": [
+    {
+      "model": "yolov11_2",
+      "class_id": 0,
+      "label": "7 Seg"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 1,
+      "label": "Arduino Mega"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 2,
+      "label": "Arduino Mini"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 3,
+      "label": "Arduino Nano"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 4,
+      "label": "Arduino Uno"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 5,
+      "label": "Battery 9V"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 6,
+      "label": "Bluetooth"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 7,
+      "label": "Breadboard"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 8,
+      "label": "Button"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 9,
+      "label": "Buzzer"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 10,
+      "label": "Capacitor"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 11,
+      "label": "Connection Cable"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 12,
+      "label": "Crystal Oscilator"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 13,
+      "label": "Dc Motor"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 14,
+      "label": "Dht"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 15,
+      "label": "Diode"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 16,
+      "label": "Display"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 17,
+      "label": "ESP WiFi"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 18,
+      "label": "ESP32"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 19,
+      "label": "Fan"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 20,
+      "label": "Flame Sensor"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 21,
+      "label": "Gaz"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 22,
+      "label": "H Bridge"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 23,
+      "label": "IC"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 24,
+      "label": "Inductor"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 25,
+      "label": "IR Receiver"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 26,
+      "label": "IR Sensor"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 27,
+      "label": "Joystick"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 28,
+      "label": "Keypad"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 29,
+      "label": "LCD"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 30,
+      "label": "LCD OLED"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 31,
+      "label": "LDR"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 32,
+      "label": "LED"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 33,
+      "label": "LED Matrix"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 34,
+      "label": "Lilypad"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 35,
+      "label": "Lipo"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 36,
+      "label": "Pile"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 37,
+      "label": "Pir"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 38,
+      "label": "Potentiometer"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 39,
+      "label": "Power Module"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 40,
+      "label": "Prototype PCB"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 41,
+      "label": "Relai"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 42,
+      "label": "Resistor"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 43,
+      "label": "RFID"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 44,
+      "label": "RTC"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 45,
+      "label": "Servo"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 46,
+      "label": "Soil Moisture"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 47,
+      "label": "Solar Panel"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 48,
+      "label": "Sound"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 49,
+      "label": "Speaker"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 50,
+      "label": "Stepper Driver"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 51,
+      "label": "Stepper Motor"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 52,
+      "label": "Support Pile"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 53,
+      "label": "Switch"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 54,
+      "label": "Transistor"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 55,
+      "label": "Ultrasonic"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 56,
+      "label": "Variable Resistor"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 57,
+      "label": "7-segment"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 58,
+      "label": "Battery"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 59,
+      "label": "Bridge Rectifier"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 60,
+      "label": "Component Storage Box"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 61,
+      "label": "ESP32 CAM"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 62,
+      "label": "Electronics Trainer Kit"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 63,
+      "label": "Function Generator"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 64,
+      "label": "Fuse"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 65,
+      "label": "Fuse Holder"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 66,
+      "label": "GSM Module"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 67,
+      "label": "Heat Sink"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 68,
+      "label": "Humidity Sensor"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 69,
+      "label": "IC Socket"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 70,
+      "label": "IGBT"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 71,
+      "label": "LDR Sensor"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 72,
+      "label": "MOSFET"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 73,
+      "label": "Multimeter"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 74,
+      "label": "Oscilloscope"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 75,
+      "label": "Pin Header"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 76,
+      "label": "Power Strip"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 77,
+      "label": "Rain Sensor"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 78,
+      "label": "Thermistor"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 79,
+      "label": "USB Serial Module"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 80,
+      "label": "Water Sensor"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 81,
+      "label": "Ceramic Capacitor"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 82,
+      "label": "LED Blue"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 83,
+      "label": "LED Green"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 84,
+      "label": "Resistor 10K"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 85,
+      "label": "Resistor 2K"
+    },
+    {
+      "model": "yolov11_2",
+      "class_id": 86,
+      "label": "Resistor 52K"
+    }
+  ]
+}
