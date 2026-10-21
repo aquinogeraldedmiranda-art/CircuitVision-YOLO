@@ -1,0 +1,31 @@
+name: CircuitVision final source archive
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/final_submission_archive.yml']
+  workflow_dispatch:
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create reproducible course source ZIP
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import zipfile
+          from subprocess import check_output
+          names=check_output(['git','ls-files','-z']).decode().split('\0')
+          names=[n for n in names if n and Path(n).is_file() and not n.startswith('.git/')]
+          with zipfile.ZipFile('CircuitVision_Source_20261021.zip','w',compression=zipfile.ZIP_DEFLATED,compresslevel=6) as z:
+              for name in names:
+                  z.write(name,arcname='CircuitVision_Source/'+name)
+          print('Archived',len(names),'tracked project files.')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CircuitVision_Source_20261021
+          path: CircuitVision_Source_20261021.zip
+          retention-days: 7
