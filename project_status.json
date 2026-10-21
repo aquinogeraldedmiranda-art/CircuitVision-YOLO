@@ -2,7 +2,7 @@
   "schema_version": 1,
   "project": "CircuitVision",
   "reviewed_on": "2026-10-21",
-  "current_phase": "Production SQLite + YOLOv11 model/reference integration verified; final IEEE implementation documentation",
+  "current_phase": "Android gallery photo normalization crash fix undergoing CI and deployment",
   "milestones": [
     {
       "id": "website",
@@ -48,6 +48,11 @@
     }
   ],
   "recent_updates": [
+    {
+      "date": "2026-10-21",
+      "title": "Android photo preparation failure reported and corrected in source",
+      "detail": "User screenshot showed the upload action returning 'Could not prepare the photo for detection' twice before any inference request. Root error path is browser image bitmap/canvas JPEG conversion; exact device-level cause not directly observed. Added four progressively smaller canvas retries, safe passthrough of original image within 16MP/10MB backend limits, explicit error for unsupported huge images, and removed duplicate inline/toast error. New Android failure regressions added; await CI, release and user phone retest."
+    },
     {
       "date": "2026-10-21",
       "title": "Production database live lookup verified",

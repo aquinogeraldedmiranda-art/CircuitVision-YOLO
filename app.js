@@ -229,7 +229,10 @@ async function runDetection(){
     toast(backendConfigured()?'YOLO analysis completed.':'Sample results loaded (demo only).');
   }catch(e){
     state.processing=false;state.requestError=e.message||'Detection failed.';
-    render();toast(state.requestError,true);
+    // The upload settings panel already renders requestError. Showing the
+    // same text as a toast duplicates the warning on small phone screens.
+    render();
+    if(state.page!=='upload')toast(state.requestError,true);
   }
 }
 async function compareModels(){

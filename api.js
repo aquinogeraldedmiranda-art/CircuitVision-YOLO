@@ -14,58 +14,98 @@ function offline() { return typeof navigator !== 'undefined' && navigator.onLine
 // The original File remains unchanged so output boxes align with its preview.
 const normalizedUploads = new WeakMap();
 
+// The API accepts JPEG/PNG/WEBP up to 16 million decoded pixels.
+// An original photo that is inside those limits is a safe fallback when
+// Android Chrome can display it but cannot allocate/encode a large canvas.
+// Let Pillow decode that original rather than wrongly telling the user that
+// the selected photo is unreadable.
+function originalIsWithinServerLimits(file, width, height) {
+  const maxBytes = (config().maxFileMB || 10) * 1024 * 1024;
+  return Number(file?.size) > 0 && file.size <= maxBytes &&
+    (!(width > 0 && height > 0) || width * height <= 16_000_000);
+}
+
 async function normalizeUploadForDetection(file) {
   if (typeof document === 'undefined' || typeof Blob === 'undefined' ||
       (typeof createImageBitmap !== 'function' &&
        (typeof Image === 'undefined' || typeof URL === 'undefined'))) {
-    // Test and nonbrowser runtimes preserve the existing transport behavior.
+    // Node tests and nonbrowser environments preserve direct-file requests.
     return {blob:file,filename:file.name || 'image.jpg'};
   }
   if (normalizedUploads.has(file)) return normalizedUploads.get(file);
   const work = (async () => {
-    let bitmap=null, url=null, visual=null;
+    let bitmap=null, url=null, visual=null, width=0, height=0;
     try {
       if (typeof createImageBitmap === 'function') {
         try { bitmap=await createImageBitmap(file,{imageOrientation:'from-image'}); }
         catch (_) { bitmap=null; }
       }
       if (bitmap) visual=bitmap;
-      else {
-        if (typeof Image === 'undefined') throw new Error('Browser image decoder unavailable');
-        url=URL.createObjectURL(file);
-        visual=await new Promise((resolve,reject)=>{
-          const el=new Image();
-          el.onload=()=>resolve(el);
-          el.onerror=()=>reject(new Error('Unable to read this photo'));
-          el.src=url;
-        });
+      else if (typeof Image !== 'undefined' && typeof URL !== 'undefined') {
+        try {
+          url=URL.createObjectURL(file);
+          visual=await new Promise((resolve,reject)=>{
+            const el=new Image();
+            el.onload=()=>resolve(el);
+            el.onerror=()=>reject(new Error('Photo decoder rejected image'));
+            el.src=url;
+          });
+        } catch (_) { visual=null; }
       }
-      const width=Number(visual.width||visual.naturalWidth);
-      const height=Number(visual.height||visual.naturalHeight);
-      if (!(width>0 && height>0)) throw new Error('Photo dimensions unavailable');
-      // Keep sufficient detail for tiny resistors without sending giant 6250px
-      // mobile images to an inference service limited to 16MP per request.
-      const maxEdge=3000, scale=Math.min(1,maxEdge/Math.max(width,height));
-      const w=Math.max(1,Math.round(width*scale));
-      const h=Math.max(1,Math.round(height*scale));
-      const canvas=document.createElement('canvas');
-      canvas.width=w;canvas.height=h;
-      const ctx=canvas.getContext('2d',{alpha:false});
-      if (!ctx) throw new Error('Image conversion is not supported on this device');
-      ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,w,h);
-      ctx.drawImage(visual,0,0,w,h);
-      const output=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',0.92));
-      if (!output || !output.size) throw new Error('Image conversion returned no data');
-      return {blob:output,filename:(file.name||'component-photo').replace(/\.[^./\\]+$/,'')+'-circuitvision.jpg'};
-    }catch(err) {
-      throw new Error('Could not prepare the photo for detection. Try another image or take a new photo with your camera.');
-    }finally{
+      width=Number(visual?.width||visual?.naturalWidth||0);
+      height=Number(visual?.height||visual?.naturalHeight||0);
+      if (!(width>0 && height>0)) {
+        if (originalIsWithinServerLimits(file,0,0))
+          return {blob:file,filename:file.name || 'photo.jpg'};
+        throw new Error('Photo dimensions unavailable');
+      }
+
+      // Phones sometimes fail to create or export a 3000px canvas under
+      // memory pressure. Try progressively smaller, still useful images.
+      // This also avoids the browser-toBlob(null) failure on some Androids.
+      const sizes=[3000,2048,1280,768];
+      for (const maxEdge of sizes) {
+        let canvas=null;
+        try {
+          const scale=Math.min(1,maxEdge/Math.max(width,height));
+          const w=Math.max(1,Math.round(width*scale));
+          const h=Math.max(1,Math.round(height*scale));
+          canvas=document.createElement('canvas');
+          canvas.width=w;canvas.height=h;
+          const ctx=canvas.getContext('2d',{alpha:false});
+          if (!ctx) continue;
+          ctx.fillStyle='#ffffff';ctx.fillRect(0,0,w,h);
+          ctx.drawImage(visual,0,0,w,h);
+          const output=await new Promise((resolve,reject)=>{
+            try { canvas.toBlob(resolve,'image/jpeg',0.92); }
+            catch (err) { reject(err); }
+          });
+          if (output?.size)
+            return {blob:output,filename:(file.name||'component-photo').replace(/\.[^./\\]+$/,'')+'-circuitvision.jpg'};
+        } catch (_) {
+          // A smaller canvas often succeeds without reselecting the photo.
+        } finally {
+          // Explicitly release GPU-backed canvas memory before retrying.
+          if(canvas){canvas.width=0;canvas.height=0;}
+        }
+      }
+      if (originalIsWithinServerLimits(file,width,height))
+        return {blob:file,filename:file.name || 'photo.jpg'};
+      throw new Error('The selected photo is too large for direct upload.');
+    } catch (_) {
+      // Avoid hiding a recoverable local canvas/decoder failure behind a
+      // generic error: the backend can safely decode supported source files.
+      if (originalIsWithinServerLimits(file,width,height))
+        return {blob:file,filename:file.name || 'photo.jpg'};
+      throw new Error('This photo is too large for your phone to resize. Try a smaller photo, or resave it as a JPG.');
+    } finally {
       bitmap?.close?.();
       if(url)URL.revokeObjectURL(url);
     }
   })();
   normalizedUploads.set(file,work);
-  try { return await work; }catch(err){normalizedUploads.delete(file);throw err;}
+  try {return await work;}
+  catch(err){normalizedUploads.delete(file);throw err;}
 }
 
 export async function detectImage(file, settings, options = {}) {
