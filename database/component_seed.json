@@ -74,6 +74,13 @@
       "value": "Voltage/current limits depend on the exact board variant and pins; check its datasheet."
     },
     {
+      "slug": "esp32",
+      "title": "ESP32 board",
+      "role": "Microcontroller board commonly used with Wi-Fi and Bluetooth.",
+      "learn": "Used for IoT and embedded prototypes.",
+      "value": "Supply and GPIO limits depend on the specific board; verify the datasheet."
+    },
+    {
       "slug": "battery",
       "title": "Battery",
       "role": "Portable DC power source.",
