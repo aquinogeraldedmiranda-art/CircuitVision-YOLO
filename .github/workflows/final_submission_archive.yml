@@ -1,5 +1,8 @@
 name: CircuitVision final source archive
 on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/final_submission_archive.yml']
   workflow_dispatch:
 jobs:
   export:
